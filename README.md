@@ -112,6 +112,24 @@ npm start
 
 Usa modo *polling*: no necesita URL pública, así que puede correr en un portátil.
 
+### Bot encendido 24/7 en Railway
+
+En el mismo proyecto de Railway se agrega un segundo servicio desde el mismo repositorio:
+
+1. **New → GitHub Repo → turnobarber**.
+2. **Settings → Root Directory** = `cliente`. No se genera dominio: el bot no recibe peticiones HTTP.
+3. **Variables**:
+
+    ```text
+    BOT_TOKEN=...
+    API_URL=https://turnobarber-production.up.railway.app/api
+    BOT_EMAIL=bot@turnobarber.test
+    BOT_PASSWORD=...
+    ZONA_HORARIA=America/Bogota
+    ```
+
+Telegram solo permite una copia del bot recibiendo mensajes a la vez: si el bot corre en Railway, no lo inicies también en local.
+
 ### Pruebas del bot
 
 Simulan a Telegram y recorren la conversación contra una API local con los datos del seeder:

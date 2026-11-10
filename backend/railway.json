@@ -1,7 +1,14 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "/backend/**"
+    ]
+  },
   "deploy": {
-    "preDeployCommand": ["php artisan migrate --force"],
+    "preDeployCommand": [
+      "php artisan migrate --force"
+    ],
     "healthcheckPath": "/up",
     "restartPolicyType": "ON_FAILURE"
   }
