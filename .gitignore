@@ -1,0 +1,5 @@
+.DS_Store
+.idea/
+.vscode/
+cliente/node_modules/
+cliente/.env
