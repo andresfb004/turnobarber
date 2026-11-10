@@ -25,7 +25,7 @@ proyecto_aula/
 
 ## Correr el backend en local
 
-Requiere PHP 8.3 o superior y Composer.
+Requiere PHP 8.4 o superior y Composer.
 
 ```bash
 cd backend
