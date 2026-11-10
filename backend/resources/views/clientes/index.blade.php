@@ -11,7 +11,7 @@
     @include('partials.buscador', [
         'ruta' => route('clientes.index'),
         'placeholder' => 'Buscar por nombre o teléfono',
-        'filtro' => ['nombre' => 'estado', 'opciones' => ['' => 'Todos', 'telegram' => 'Registrados por Telegram', 'bloqueados' => 'Bloqueados']],
+        'filtro' => ['nombre' => 'estado', 'opciones' => ['' => 'Todos', 'telegram' => 'Registrados por Telegram', 'con_inasistencias' => 'Con inasistencias', 'bloqueados' => 'Bloqueados']],
     ])
 
     <div class="card">

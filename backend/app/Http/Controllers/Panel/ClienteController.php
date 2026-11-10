@@ -28,6 +28,7 @@ class ClienteController extends Controller
                 ->where('nombre', 'like', "%{$busqueda}%")
                 ->orWhere('telefono', 'like', "%{$busqueda}%")))
             ->when($estado === 'bloqueados', fn ($q) => $q->where('bloqueado', true))
+            ->when($estado === 'con_inasistencias', fn ($q) => $q->where('inasistencias', '>', 0)->orderByDesc('inasistencias'))
             ->when($estado === 'telegram', fn ($q) => $q->whereNotNull('telegram_id'))
             ->orderBy('nombre')
             ->paginate(10)
