@@ -1,0 +1,354 @@
+// Conversación del bot. El cliente nunca escribe texto libre: elige con botones,
+// y cada botón lleva un dato exacto (por ejemplo "prof:2" o "dia:2026-11-11").
+const { Markup } = require('telegraf');
+const api = require('./api');
+const config = require('./config');
+const { proximosDiasHabiles } = require('./fechas');
+
+// Paso en el que va cada cliente: chatId -> { profesional, fecha, fechaTexto, inicio }.
+// Vive en memoria; si el bot se reinicia, el cliente vuelve a empezar desde el menú.
+const estado = new Map();
+
+const boton = (texto, dato) => Markup.button.callback(texto, dato);
+const volverAlMenu = [boton('🏠 Menú', 'menu')];
+
+const escapar = (texto) =>
+  String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const horaDe = (iso) =>
+  new Intl.DateTimeFormat('es-CO', {
+    timeZone: config.zonaHoraria,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(iso));
+
+const icono = (especialidad) => (especialidad === 'barberia' ? '💈' : '💅');
+
+// Muestra un mensaje: edita el anterior si el cliente tocó un botón, o envía uno nuevo.
+async function mostrar(ctx, texto, filas = [], { nuevo = false } = {}) {
+  const extra = { parse_mode: 'HTML', ...Markup.inlineKeyboard(filas) };
+
+  if (ctx.callbackQuery && !nuevo) {
+    try {
+      return await ctx.editMessageText(texto, extra);
+    } catch (error) {
+      if (String(error.description || error.message).includes('message is not modified')) return;
+    }
+  }
+
+  return ctx.reply(texto, extra);
+}
+
+async function responderError(ctx, resultado, reintentar = 'menu') {
+  if (resultado.tipo === 'offline') {
+    return mostrar(ctx, '⚠️ El sistema de citas no está disponible en este momento. Intenta de nuevo en unos minutos.', [
+      [boton('🔄 Reintentar', reintentar)],
+      volverAlMenu,
+    ]);
+  }
+
+  if (resultado.tipo === 'validacion' && resultado.errores?.telegram_id) {
+    return pedirContacto(ctx);
+  }
+
+  if (resultado.tipo === 'validacion') {
+    return mostrar(ctx, `⚠️ ${escapar(resultado.mensaje)}`, [volverAlMenu]);
+  }
+
+  return mostrar(ctx, '😕 Algo salió mal. Intenta de nuevo.', [volverAlMenu]);
+}
+
+function pedirContacto(ctx) {
+  return ctx.reply(
+    '👋 ¡Bienvenido a la barbería!\n\nPara agendar necesito tu número de celular. Toca el botón de abajo para compartirlo.',
+    Markup.keyboard([Markup.button.contactRequest('📱 Compartir mi número')]).oneTime().resize(),
+  );
+}
+
+function mostrarMenu(ctx, saludo = '¿Qué quieres hacer?') {
+  estado.delete(ctx.chat.id);
+
+  return mostrar(ctx, saludo, [
+    [boton('📅 Agendar una cita', 'agendar')],
+    [boton('📋 Mis citas', 'mis_citas'), boton('❌ Cancelar una cita', 'cancelar')],
+  ]);
+}
+
+// ---- Registro del cliente ----
+
+async function inicio(ctx) {
+  const resultado = await api.citasDelCliente(ctx.from.id);
+
+  if (resultado.ok) {
+    return mostrarMenu(ctx, `¡Hola de nuevo, ${escapar(ctx.from.first_name)}! ¿Qué quieres hacer?`);
+  }
+
+  if (resultado.tipo === 'no_encontrado') {
+    return pedirContacto(ctx);
+  }
+
+  return responderError(ctx, resultado);
+}
+
+async function recibirContacto(ctx) {
+  const contacto = ctx.message.contact;
+
+  if (contacto.user_id !== ctx.from.id) {
+    return ctx.reply('Por favor comparte tu propio número con el botón "📱 Compartir mi número".');
+  }
+
+  const resultado = await api.vincularCliente({
+    telegram_id: ctx.from.id,
+    telefono: contacto.phone_number,
+    nombre: [contacto.first_name, contacto.last_name].filter(Boolean).join(' '),
+  });
+
+  if (!resultado.ok) {
+    return responderError(ctx, resultado);
+  }
+
+  await ctx.reply(`✅ ¡Listo, ${escapar(resultado.data.data.nombre)}! Ya estás registrado.`, {
+    parse_mode: 'HTML',
+    ...Markup.removeKeyboard(),
+  });
+
+  return mostrarMenu(ctx);
+}
+
+// ---- Agendar: profesional → día → turno → confirmar ----
+
+async function elegirProfesional(ctx) {
+  const resultado = await api.profesionales();
+
+  if (!resultado.ok) return responderError(ctx, resultado, 'agendar');
+
+  const filas = resultado.data.data.map((p) => [
+    boton(`${icono(p.especialidad)} ${p.especialidad_texto} · ${p.nombre}`, `prof:${p.id}`),
+  ]);
+
+  return mostrar(ctx, '¿Con quién quieres tu cita?', [...filas, volverAlMenu]);
+}
+
+async function elegirDia(ctx) {
+  const profesionalId = Number(ctx.match[1]);
+  const resultado = await api.profesionales();
+
+  if (!resultado.ok) return responderError(ctx, resultado, 'agendar');
+
+  const profesional = resultado.data.data.find((p) => p.id === profesionalId);
+
+  if (!profesional) return mostrar(ctx, 'Ese profesional ya no está disponible.', [volverAlMenu]);
+
+  estado.set(ctx.chat.id, { profesional });
+
+  const dias = proximosDiasHabiles(config.diasParaAgendar);
+  const filas = [];
+
+  for (let i = 0; i < dias.length; i += 2) {
+    filas.push(dias.slice(i, i + 2).map((d) => boton(d.texto, `dia:${d.iso}:${d.texto}`)));
+  }
+
+  return mostrar(ctx, `${icono(profesional.especialidad)} <b>${escapar(profesional.nombre)}</b>\n\n¿Qué día?`, [
+    ...filas,
+    [boton('↩️ Cambiar profesional', 'agendar')],
+  ]);
+}
+
+async function elegirTurno(ctx, fechaElegida, fechaTexto, opciones = {}) {
+  const seleccion = estado.get(ctx.chat.id);
+
+  if (!seleccion) return seleccionVencida(ctx);
+
+  const fecha = fechaElegida ?? ctx.match[1];
+  seleccion.fecha = fecha;
+  seleccion.fechaTexto = fechaTexto ?? ctx.match[2];
+
+  const resultado = await api.turnos(seleccion.profesional.id, fecha);
+
+  if (!resultado.ok) return responderError(ctx, resultado, `dia:${fecha}:${seleccion.fechaTexto}`);
+
+  const turnos = resultado.data.data;
+  const volver = [boton('↩️ Cambiar día', `prof:${seleccion.profesional.id}`)];
+
+  if (turnos.length === 0) {
+    return mostrar(ctx, `😕 No hay turnos libres el día <b>${escapar(seleccion.fechaTexto)}</b>. Elige otro día.`, [volver], opciones);
+  }
+
+  const filas = [];
+
+  for (let i = 0; i < turnos.length; i += 3) {
+    filas.push(turnos.slice(i, i + 3).map((t) => boton(t.hora, `turno:${t.inicio}`)));
+  }
+
+  return mostrar(
+    ctx,
+    `${icono(seleccion.profesional.especialidad)} <b>${escapar(seleccion.profesional.nombre)}</b> · ${escapar(seleccion.fechaTexto)}\n\nElige tu turno (1 hora):`,
+    [...filas, volver],
+    opciones,
+  );
+}
+
+function resumen(ctx) {
+  const seleccion = estado.get(ctx.chat.id);
+
+  if (!seleccion?.fecha) return seleccionVencida(ctx);
+
+  seleccion.inicio = ctx.match[1];
+
+  return mostrar(
+    ctx,
+    [
+      '📝 <b>Confirma tu cita</b>',
+      '',
+      `${icono(seleccion.profesional.especialidad)} ${escapar(seleccion.profesional.nombre)} (${escapar(seleccion.profesional.especialidad_texto)})`,
+      `📅 ${escapar(seleccion.fechaTexto)}`,
+      `🕐 ${horaDe(seleccion.inicio)}`,
+    ].join('\n'),
+    [
+      [boton('✅ Confirmar', 'confirmar')],
+      [boton('↩️ Cambiar hora', `dia:${seleccion.fecha}:${seleccion.fechaTexto}`), boton('❌ Salir', 'menu')],
+    ],
+  );
+}
+
+async function confirmar(ctx) {
+  const seleccion = estado.get(ctx.chat.id);
+
+  if (!seleccion?.inicio) return seleccionVencida(ctx);
+
+  const resultado = await api.agendar({
+    telegram_id: ctx.from.id,
+    profesional_id: seleccion.profesional.id,
+    inicio: seleccion.inicio,
+  });
+
+  if (resultado.ok) {
+    const cita = resultado.data.data;
+    estado.delete(ctx.chat.id);
+
+    return mostrar(
+      ctx,
+      [
+        '✅ <b>¡Cita agendada!</b>',
+        '',
+        `${icono(cita.profesional.especialidad)} ${escapar(cita.profesional.nombre)}`,
+        `📅 ${escapar(cita.fecha_texto)}`,
+        `🕐 ${escapar(cita.hora_texto)}`,
+        '',
+        'Te enviaré un recordatorio antes de la cita.',
+      ].join('\n'),
+      [volverAlMenu],
+    );
+  }
+
+  // Si otro cliente tomó el turno mientras confirmaba, se le ofrecen las horas que quedan.
+  if (resultado.tipo === 'validacion' && resultado.errores?.inicio) {
+    await mostrar(ctx, `⚠️ ${escapar(resultado.mensaje)}`);
+    return elegirTurno(ctx, seleccion.fecha, seleccion.fechaTexto, { nuevo: true });
+  }
+
+  return responderError(ctx, resultado, 'confirmar');
+}
+
+function seleccionVencida(ctx) {
+  return mostrar(ctx, '⏱️ Tu selección expiró. Empecemos de nuevo.', [
+    [boton('📅 Agendar una cita', 'agendar')],
+    volverAlMenu,
+  ]);
+}
+
+// ---- Mis citas y cancelar ----
+
+function lineaCita(cita) {
+  return `${icono(cita.profesional?.especialidad)} <b>${escapar(cita.fecha_texto)}</b> · ${escapar(cita.hora_texto)} con ${escapar(cita.profesional?.nombre)}`;
+}
+
+async function misCitas(ctx) {
+  const resultado = await api.citasDelCliente(ctx.from.id);
+
+  if (resultado.tipo === 'no_encontrado') return pedirContacto(ctx);
+  if (!resultado.ok) return responderError(ctx, resultado, 'mis_citas');
+
+  const citas = resultado.data.data;
+
+  if (citas.length === 0) {
+    return mostrar(ctx, 'No tienes citas pendientes.', [[boton('📅 Agendar una cita', 'agendar')], volverAlMenu]);
+  }
+
+  return mostrar(ctx, ['📋 <b>Tus próximas citas</b>', '', ...citas.map(lineaCita)].join('\n'), [volverAlMenu]);
+}
+
+async function elegirCitaACancelar(ctx) {
+  const resultado = await api.citasDelCliente(ctx.from.id);
+
+  if (resultado.tipo === 'no_encontrado') return pedirContacto(ctx);
+  if (!resultado.ok) return responderError(ctx, resultado, 'cancelar');
+
+  const citas = resultado.data.data;
+
+  if (citas.length === 0) {
+    return mostrar(ctx, 'No tienes citas pendientes para cancelar.', [volverAlMenu]);
+  }
+
+  const filas = citas.map((c) => [boton(`${c.fecha_texto} · ${c.hora_texto} · ${c.profesional.nombre}`, `cancelar:${c.id}`)]);
+
+  return mostrar(ctx, '¿Cuál cita quieres cancelar?', [...filas, volverAlMenu]);
+}
+
+function confirmarCancelacion(ctx) {
+  const citaId = ctx.match[1];
+
+  return mostrar(
+    ctx,
+    '¿Seguro que quieres cancelar esta cita?\n\n<i>Si faltan menos de 2 horas, la cancelación cuenta como inasistencia. Con 2 inasistencias tu cuenta se bloquea.</i>',
+    [[boton('Sí, cancelar', `cancelar_si:${citaId}`), boton('No', 'menu')]],
+  );
+}
+
+async function cancelar(ctx) {
+  const resultado = await api.cancelar(ctx.match[1], ctx.from.id);
+
+  if (resultado.tipo === 'no_encontrado') {
+    return mostrar(ctx, 'No encontré esa cita. Puede que ya no exista.', [volverAlMenu]);
+  }
+
+  if (!resultado.ok) return responderError(ctx, resultado, `cancelar_si:${ctx.match[1]}`);
+
+  const simbolo = resultado.data.cuenta_como_inasistencia ? '⚠️' : '✅';
+
+  return mostrar(ctx, `${simbolo} ${escapar(resultado.data.message)}`, [volverAlMenu]);
+}
+
+// ---- Registro de manejadores ----
+
+function registrarFlujo(bot) {
+  // Toda acción de un botón responde el "callback" para que Telegram quite el reloj de carga.
+  bot.on('callback_query', async (ctx, next) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return next();
+  });
+
+  bot.start(inicio);
+  bot.command('menu', (ctx) => mostrarMenu(ctx));
+  bot.command('agendar', elegirProfesional);
+  bot.command('citas', misCitas);
+  bot.on('contact', recibirContacto);
+
+  bot.action('menu', (ctx) => mostrarMenu(ctx));
+  bot.action('agendar', elegirProfesional);
+  bot.action(/^prof:(\d+)$/, elegirDia);
+  bot.action(/^dia:(\d{4}-\d{2}-\d{2}):(.+)$/, (ctx) => elegirTurno(ctx));
+  bot.action(/^turno:(.+)$/, resumen);
+  bot.action('confirmar', confirmar);
+  bot.action('mis_citas', misCitas);
+  bot.action('cancelar', elegirCitaACancelar);
+  bot.action(/^cancelar:(\d+)$/, confirmarCancelacion);
+  bot.action(/^cancelar_si:(\d+)$/, cancelar);
+  bot.action(/^asisto:(\d+)$/, (ctx) => mostrar(ctx, '🙌 ¡Gracias por confirmar! Te esperamos.'));
+
+  // Cualquier texto que no sea un comando: el bot no lo interpreta y muestra el menú.
+  bot.on('text', (ctx) => mostrarMenu(ctx, 'No entendí ese mensaje 🙈. Usa los botones:'));
+}
+
+module.exports = { registrarFlujo, horaDe, escapar };

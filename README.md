@@ -73,6 +73,41 @@ Todas las rutas, menos `login`, requieren el token Sanctum en la cabecera `Autho
 
 La colección `postman/TurnoBarber.postman_collection.json` trae el flujo completo y un ejemplo de cada error (401, 404, 422). Cambia la variable `base_url` para apuntar a la URL desplegada.
 
+## Bot de Telegram (`cliente/`)
+
+Cliente externo en Node.js con Telegraf. Vive fuera de Laravel y solo habla con la API: inicia sesión con el usuario del bot, guarda el token y lo usa en cada petición. El cliente elige todo con botones: con quién, qué día y qué turno.
+
+| Situación | Qué hace el bot |
+| --- | --- |
+| La API no responde | Avisa que el sistema no está disponible y ofrece reintentar, sin caerse |
+| 401 (token vencido) | Vuelve a iniciar sesión y repite la petición una vez |
+| 422 (regla rechazada) | Muestra el mensaje de la API; si el turno se tomó, ofrece las horas que quedan |
+
+Cada 10 minutos consulta los recordatorios pendientes y le escribe a cada cliente con botones para confirmar o cancelar.
+
+### Correr el bot
+
+Requiere Node.js 20.12 o superior y un bot creado con [@BotFather](https://t.me/BotFather).
+
+```bash
+cd cliente
+npm install
+cp .env.example .env   # pon BOT_TOKEN y BOT_PASSWORD
+npm start
+```
+
+Usa modo *polling*: no necesita URL pública, así que puede correr en un portátil.
+
+### Pruebas del bot
+
+Simulan a Telegram y recorren la conversación contra una API local con los datos del seeder:
+
+```bash
+cd backend && php artisan migrate:fresh --seed && php artisan serve --port=8001
+# en otra terminal
+cd cliente && npm test
+```
+
 ## Despliegue en Railway
 
 1. **New Project → Deploy from GitHub repo** y elige este repositorio.
