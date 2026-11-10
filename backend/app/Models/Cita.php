@@ -30,6 +30,21 @@ class Cita extends Model
      */
     public const DURACION_MINUTOS = 60;
 
+    /**
+     * RN3: se agenda desde 1 h y hasta 14 días adelante; cancelar con menos
+     * de 2 h cuenta como inasistencia.
+     */
+    public const ANTICIPACION_MINIMA_MINUTOS = 60;
+
+    public const ANTICIPACION_MAXIMA_DIAS = 14;
+
+    public const CANCELACION_MINIMA_MINUTOS = 120;
+
+    /**
+     * Ventana en la que el bot envía el recordatorio antes de la cita.
+     */
+    public const RECORDATORIO_MINUTOS = 120;
+
     protected function casts(): array
     {
         return [

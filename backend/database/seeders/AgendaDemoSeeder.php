@@ -18,6 +18,8 @@ class AgendaDemoSeeder extends Seeder
 
     private const OCUPACION_FUTURO = 0.25;
 
+    public const TELEGRAM_ID_BLOQUEADO = 900000001;
+
     /**
      * Crea clientes y unas cuatro semanas de citas para que el dashboard tenga datos.
      * Recorre los turnos reales de cada profesional, así que nunca genera cruces.
@@ -75,6 +77,14 @@ class AgendaDemoSeeder extends Seeder
         }
 
         $this->actualizarInasistencias();
+
+        // Cliente fijo para mostrar el error de bloqueo (RN4) en Postman y en la demo.
+        Cliente::factory()->create([
+            'telegram_id' => self::TELEGRAM_ID_BLOQUEADO,
+            'nombre' => 'Cliente bloqueado (demo)',
+            'inasistencias' => Cliente::MAX_INASISTENCIAS,
+            'bloqueado' => true,
+        ]);
     }
 
     private function estaCerrado($cierres, Carbon $inicio): bool

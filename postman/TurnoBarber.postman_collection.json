@@ -1,0 +1,954 @@
+{
+  "info": {
+    "name": "TurnoBarber API",
+    "description": "API del sistema de citas de la barbería. Ejecuta primero la carpeta 'Flujo del bot' en orden; luego 'Errores esperados'.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "bot_email",
+      "value": "bot@turnobarber.test"
+    },
+    {
+      "key": "bot_password",
+      "value": "password"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "telegram_id",
+      "value": "555000111"
+    },
+    {
+      "key": "telegram_id_bloqueado",
+      "value": "900000001"
+    },
+    {
+      "key": "profesional_id",
+      "value": "1"
+    },
+    {
+      "key": "fecha",
+      "value": ""
+    },
+    {
+      "key": "inicio",
+      "value": ""
+    },
+    {
+      "key": "cita_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Flujo del bot",
+      "item": [
+        {
+          "name": "Login del bot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{bot_email}}\",\n  \"password\": \"{{bot_password}}\",\n  \"device_name\": \"postman\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Guarda el token en la variable {{token}} para el resto de peticiones."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vincular cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/clientes/vincular",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes",
+                "vincular"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"telefono\": \"+57 300 555 0101\",\n  \"nombre\": \"Cliente de Postman\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201 (nuevo) o 200 (ya existía)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar profesionales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('profesional_id', pm.response.json().data[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Turnos libres",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/turnos?profesional={{profesional_id}}&fecha={{fecha}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "turnos"
+              ],
+              "query": [
+                {
+                  "key": "profesional",
+                  "value": "{{profesional_id}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                }
+              ]
+            },
+            "description": "Consulta el próximo día hábil y guarda el primer turno libre en {{inicio}}."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Próximo día de lunes a sábado, en hora de Colombia.",
+                  "const hoy = new Date(Date.now() - 5 * 3600 * 1000);",
+                  "const d = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + 1));",
+                  "if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);",
+                  "pm.collectionVariables.set('fecha', d.toISOString().slice(0, 10));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().data;",
+                  "if (t.length) pm.collectionVariables.set('inicio', t[0].inicio);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agendar cita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{inicio}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('cita_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver cita",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas/{{cita_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas",
+                "{{cita_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mis próximas citas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/clientes/{{telegram_id}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "clientes",
+                "{{telegram_id}}",
+                "citas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recordatorios pendientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recordatorios/pendientes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "recordatorios",
+                "pendientes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar recordatorio enviado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/recordatorios/{{cita_id}}/enviado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "recordatorios",
+                "{{cita_id}}",
+                "enviado"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar cita",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas/{{cita_id}}/cancelar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas",
+                "{{cita_id}}",
+                "cancelar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Errores esperados",
+      "item": [
+        {
+          "name": "401 · Login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{bot_email}}\",\n  \"password\": \"incorrecta\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 · Petición sin token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Login sin datos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preparar · Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{bot_email}}\",\n  \"password\": \"{{bot_password}}\",\n  \"device_name\": \"postman\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preparar · Agendar un turno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{inicio}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Un turno del segundo día hábil a las 10:00, para no chocar con el flujo principal.",
+                  "const hoy = new Date(Date.now() - 5 * 3600 * 1000);",
+                  "const d = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + 2));",
+                  "if (d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);",
+                  "pm.collectionVariables.set('inicio', d.toISOString().slice(0, 10) + 'T10:00:00-05:00');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cita creada o turno ya tomado', () => pm.expect(pm.response.code).to.be.oneOf([201, 422]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Mismo turno con el mismo profesional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{inicio}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Mensaje de turno tomado', () => pm.expect(pm.response.json().errors.inicio[0]).to.include('tomado'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Cliente bloqueado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id_bloqueado}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{inicio}}\"\n}"
+            },
+            "description": "Usa el cliente bloqueado que crea el seeder (telegram_id 900000001)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Turno fuera del horario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{fecha}} 10:30\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Fecha pasada en turnos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/turnos?profesional={{profesional_id}}&fecha=2020-01-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "turnos"
+              ],
+              "query": [
+                {
+                  "key": "profesional",
+                  "value": "{{profesional_id}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "2020-01-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 · Cita que no existe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas",
+                "999999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 · Profesional que no existe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/turnos?profesional=999999&fecha={{fecha}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "turnos"
+              ],
+              "query": [
+                {
+                  "key": "profesional",
+                  "value": "999999"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
