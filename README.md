@@ -53,6 +53,20 @@ Pruebas automáticas:
 php artisan test
 ```
 
+## Panel web
+
+Blade con Bootstrap 5 (desde CDN, sin compilar nada). Se entra en `/login`.
+
+| Rol | Qué puede hacer |
+| --- | --- |
+| Administrador | Dashboard, las dos agendas (juntas o por profesional), crear citas, CRUD de profesionales, cierres y clientes, desbloquear clientes |
+| Profesional | Solo su agenda: ver sus citas y marcar si el cliente asistió |
+
+- **Dashboard:** citas de hoy por profesional, ocupación de la semana, inasistencias del mes, clientes bloqueados y gráfico de citas atendidas por día (Chart.js).
+- **Agenda:** una columna por profesional y una fila por turno. Desde cada cita se marca atendida o no asistió (suma una inasistencia, RN4), o se cancela si aún no empieza.
+- **CRUD con búsqueda y paginación:** profesionales (con su cuenta y horario), cierres (festivos o diligencias, a quién afectan) y clientes (con el historial de citas que llegan del bot).
+- Páginas de error propias: 403, 404, 419, 500 y 503.
+
 ## API
 
 Todas las rutas, menos `login`, requieren el token Sanctum en la cabecera `Authorization: Bearer <token>`.

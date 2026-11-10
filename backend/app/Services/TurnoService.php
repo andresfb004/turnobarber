@@ -30,7 +30,7 @@ class TurnoService
         $ocupados = $this->citas->iniciosOcupados($profesional, $fecha);
         $desde = Carbon::now()->addMinutes(Cita::ANTICIPACION_MINIMA_MINUTOS);
 
-        return $this->turnosDelHorario($profesional, $fecha)
+        return $this->turnosDelDia($profesional, $fecha)
             ->reject(fn (Carbon $inicio) => in_array($inicio->format('Y-m-d H:i:s'), $ocupados, true))
             ->reject(fn (Carbon $inicio) => $inicio < $desde)
             ->values();
@@ -41,7 +41,7 @@ class TurnoService
      */
     public function esTurnoDelHorario(Profesional $profesional, Carbon $inicio): bool
     {
-        return $this->turnosDelHorario($profesional, $inicio)
+        return $this->turnosDelDia($profesional, $inicio)
             ->contains(fn (Carbon $turno) => $turno->equalTo($inicio));
     }
 
@@ -50,7 +50,7 @@ class TurnoService
      *
      * @return Collection<int, Carbon>
      */
-    private function turnosDelHorario(Profesional $profesional, Carbon $fecha): Collection
+    public function turnosDelDia(Profesional $profesional, Carbon $fecha): Collection
     {
         $dia = $fecha->copy()->startOfDay();
 

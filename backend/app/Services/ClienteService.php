@@ -48,4 +48,23 @@ class ClienteService
             'nombre' => $nombre,
         ]), true];
     }
+
+    /**
+     * RN4: solo un administrador desbloquea; el cliente empieza de cero inasistencias.
+     */
+    public function desbloquear(Cliente $cliente): Cliente
+    {
+        return $this->clientes->actualizar($cliente, ['inasistencias' => 0, 'bloqueado' => false]);
+    }
+
+    public function eliminar(Cliente $cliente): void
+    {
+        if ($cliente->citas()->exists()) {
+            throw ValidationException::withMessages([
+                'cliente' => 'No se puede eliminar un cliente que tiene citas registradas.',
+            ]);
+        }
+
+        $cliente->delete();
+    }
 }

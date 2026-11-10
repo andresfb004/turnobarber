@@ -53,4 +53,17 @@ class User extends Authenticatable
     {
         return $this->role?->nombre === $nombre;
     }
+
+    public function esAdministrador(): bool
+    {
+        return $this->tieneRol(Role::ADMINISTRADOR);
+    }
+
+    /**
+     * Solo administradores y profesionales entran al panel; el bot usa únicamente la API.
+     */
+    public function puedeEntrarAlPanel(): bool
+    {
+        return $this->esAdministrador() || $this->tieneRol(Role::PROFESIONAL);
+    }
 }

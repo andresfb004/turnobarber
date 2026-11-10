@@ -100,6 +100,37 @@ class CitaService
         return [$cita, $cuentaComoFalta];
     }
 
+    /**
+     * Desde el panel: marca una cita pendiente como atendida, no asistió o cancelada.
+     * La asistencia solo se registra cuando la cita ya empezó; cancelar, solo antes.
+     */
+    public function cambiarEstado(Cita $cita, string $estado): Cita
+    {
+        if ($cita->estado !== Cita::PENDIENTE) {
+            $this->rechazar('estado', 'Solo se puede cambiar una cita pendiente.');
+        }
+
+        $yaEmpezo = $cita->inicio <= Carbon::now();
+
+        if (in_array($estado, [Cita::ATENDIDA, Cita::NO_ASISTIO], true) && ! $yaEmpezo) {
+            $this->rechazar('estado', 'La asistencia se marca cuando la cita ya empezó.');
+        }
+
+        if ($estado === Cita::CANCELADA && $yaEmpezo) {
+            $this->rechazar('estado', 'No se puede cancelar una cita que ya empezó.');
+        }
+
+        DB::transaction(function () use ($cita, $estado) {
+            $this->citas->actualizar($cita, ['estado' => $estado]);
+
+            if ($estado === Cita::NO_ASISTIO) {
+                $this->registrarInasistencia($cita->cliente);
+            }
+        });
+
+        return $cita;
+    }
+
     public function proximasDelCliente(Cliente $cliente): Collection
     {
         return $this->citas->proximasDelCliente($cliente);
