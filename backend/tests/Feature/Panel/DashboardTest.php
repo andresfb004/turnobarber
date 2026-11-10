@@ -52,7 +52,7 @@ class DashboardTest extends ApiTestCase
                 && $hoy->first()['atendidas'] === 1
                 && $hoy->first()['por_venir'] === 1
                 && $hoy->first()['por_marcar'] === 1)
-            ->assertSee('1 atendida · 1 por venir')
+            ->assertSee('1 atendida, 1 por venir')
             ->assertSee('1 por marcar');
     }
 

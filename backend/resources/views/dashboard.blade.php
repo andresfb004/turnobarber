@@ -2,21 +2,11 @@
 
 @section('titulo', 'Dashboard')
 
-@push('estilos')
-    <style>
-        .card-enlace { transition: box-shadow .15s ease; }
-        .card-enlace:hover { box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .1); }
-        .card-enlace:focus-visible { outline: 3px solid var(--tb-dorado); outline-offset: 2px; }
-        .card-enlace .ver { color: #6c757d; font-size: .8rem; }
-        .card-enlace:hover .ver { color: var(--tb-oscuro); }
-    </style>
-@endpush
-
 @section('contenido')
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <h1 class="h3 mb-0">Dashboard</h1>
-            <div class="text-secondary">{{ ucfirst(now()->locale('es')->isoFormat('dddd D [de] MMMM · h:mm a')) }}</div>
+            <h1 class="mb-0">{{ ucfirst(now()->locale('es')->isoFormat('dddd D [de] MMMM')) }}</h1>
+            <div class="text-secondary">Resumen de la barbería a las {{ now()->locale('es')->isoFormat('h:mm a') }}</div>
         </div>
         <a href="{{ route('agenda') }}" class="btn btn-tb"><i class="bi bi-calendar3"></i> Ver agenda de hoy</a>
     </div>
@@ -29,79 +19,71 @@
                 <strong>{{ $porMarcar['total'] }} {{ $porMarcar['total'] === 1 ? 'cita ya pasó y sigue' : 'citas ya pasaron y siguen' }} sin marcar.</strong>
                 Márcalas como atendidas o no asistió para que las inasistencias se cuenten.
             </div>
-            <a href="{{ route('agenda', ['fecha' => $porMarcar['desde']->toDateString()]) }}" class="btn btn-sm btn-dark">
-                Marcar en la agenda <i class="bi bi-chevron-right"></i>
+            <a href="{{ route('agenda', ['fecha' => $porMarcar['desde']->toDateString()]) }}" class="btn btn-sm btn-tb">
+                Marcar en la agenda
             </a>
         </div>
     @endif
 
     <h2 class="visually-hidden">Resumen</h2>
-    <div class="row g-3 mb-4">
+    <div class="row g-0 libro mb-4">
         @forelse ($hoy as $dia)
             <div class="col-sm-6 col-lg-3">
-                <a href="{{ route('agenda', ['profesional' => $dia['profesional']->id]) }}" class="card card-enlace h-100 text-decoration-none text-body">
-                    <div class="card-body">
-                        <div class="text-secondary small">Citas hoy · {{ $dia['profesional']->nombre }}</div>
-                        <div class="metrica">{{ $dia['total'] }}</div>
-                        <div class="small">
-                            {{ $dia['atendidas'] }} {{ $dia['atendidas'] === 1 ? 'atendida' : 'atendidas' }} · {{ $dia['por_venir'] }} por venir
-                            @if ($dia['no_asistio'] > 0)
-                                · {{ $dia['no_asistio'] }} no asistió
-                            @endif
-                        </div>
-                        @if ($dia['por_marcar'] > 0)
-                            <div class="small text-warning-emphasis fw-semibold"><i class="bi bi-exclamation-circle"></i> {{ $dia['por_marcar'] }} por marcar</div>
-                        @endif
-                        <div class="ver mt-1">Ver su agenda <i class="bi bi-chevron-right"></i></div>
+                <a href="{{ route('agenda', ['profesional' => $dia['profesional']->id]) }}" class="libro-celda">
+                    <div class="text-secondary small">Citas de hoy con {{ $dia['profesional']->nombre }}</div>
+                    <div class="metrica">{{ $dia['total'] }}</div>
+                    <div class="small">
+                        {{ collect([
+                            $dia['atendidas'].' '.($dia['atendidas'] === 1 ? 'atendida' : 'atendidas'),
+                            $dia['por_venir'].' por venir',
+                            $dia['no_asistio'] > 0 ? $dia['no_asistio'].' no asistió' : null,
+                        ])->filter()->join(', ') }}
                     </div>
+                    @if ($dia['por_marcar'] > 0)
+                        <div class="small fw-semibold" style="color: var(--do-cobre)"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> {{ $dia['por_marcar'] }} por marcar</div>
+                    @endif
+                    <div class="ver mt-1">Ver su agenda</div>
                 </a>
             </div>
         @empty
             <div class="col-lg-6">
-                <div class="card h-100"><div class="card-body text-secondary">
-                    <i class="bi bi-person-x"></i> No hay profesionales activos.
-                    <a href="{{ route('profesionales.index') }}">Revisar profesionales</a>
-                </div></div>
+                <div class="libro-celda text-secondary">
+                    No hay profesionales activos. <a href="{{ route('profesionales.index') }}">Revisar profesionales</a>
+                </div>
             </div>
         @endforelse
 
         <div class="col-sm-4 col-lg-2">
-            <a href="{{ route('agenda') }}" class="card card-enlace h-100 text-decoration-none text-body">
-                <div class="card-body">
-                    <div class="text-secondary small">Ocupación de la semana</div>
-                    <div class="metrica">{{ $ocupacion['porcentaje'] }}%</div>
-                    <div class="small">{{ $ocupacion['ocupados'] }} de {{ $ocupacion['turnos'] }} turnos</div>
-                    <div class="ver mt-1">Ver agenda <i class="bi bi-chevron-right"></i></div>
-                </div>
+            <a href="{{ route('agenda') }}" class="libro-celda">
+                <div class="text-secondary small">Ocupación de la semana</div>
+                <div class="metrica">{{ $ocupacion['porcentaje'] }}%</div>
+                <div class="small">{{ $ocupacion['ocupados'] }} de {{ $ocupacion['turnos'] }} turnos</div>
+                <div class="ver mt-1">Ver agenda</div>
             </a>
         </div>
         <div class="col-sm-4 col-lg-2">
-            <a href="{{ route('clientes.index', ['estado' => 'con_inasistencias']) }}" class="card card-enlace h-100 text-decoration-none text-body">
-                <div class="card-body">
-                    <div class="text-secondary small">Inasistencias del mes</div>
-                    <div class="metrica @if($inasistencias['total'] > 0) text-danger @endif">
-                        @if ($inasistencias['total'] > 0)<i class="bi bi-exclamation-triangle fs-5 align-middle" aria-hidden="true"></i>@endif
-                        {{ $inasistencias['total'] }}
-                    </div>
-                    <div class="small">
-                        @if ($inasistencias['de'] > 0)
-                            {{ $inasistencias['porcentaje'] }}% de {{ $inasistencias['de'] }} citas
-                        @else
-                            Sin citas cerradas este mes
-                        @endif
-                    </div>
-                    <div class="ver mt-1">Ver clientes <i class="bi bi-chevron-right"></i></div>
+            <a href="{{ route('clientes.index', ['estado' => 'con_inasistencias']) }}" class="libro-celda">
+                <div class="text-secondary small">Inasistencias del mes</div>
+                <div class="metrica @if($inasistencias['total'] > 0) text-danger @endif">
+                    @if ($inasistencias['total'] > 0)<i class="bi bi-exclamation-triangle fs-5 align-middle" aria-hidden="true"></i>@endif
+                    {{ $inasistencias['total'] }}
                 </div>
+                <div class="small">
+                    @if ($inasistencias['de'] > 0)
+                        {{ $inasistencias['porcentaje'] }}% de {{ $inasistencias['de'] }} citas
+                    @else
+                        Sin citas cerradas este mes
+                    @endif
+                </div>
+                <div class="ver mt-1">Ver clientes</div>
             </a>
         </div>
         <div class="col-sm-4 col-lg-2">
-            <a href="{{ route('clientes.index', ['estado' => 'bloqueados']) }}" class="card card-enlace h-100 text-decoration-none text-body">
-                <div class="card-body">
-                    <div class="text-secondary small">Clientes bloqueados</div>
-                    <div class="metrica">{{ $clientesBloqueados }}</div>
-                    <div class="small">No pueden agendar por el bot</div>
-                    <div class="ver mt-1">Revisar <i class="bi bi-chevron-right"></i></div>
-                </div>
+            <a href="{{ route('clientes.index', ['estado' => 'bloqueados']) }}" class="libro-celda">
+                <div class="text-secondary small">Clientes bloqueados</div>
+                <div class="metrica">{{ $clientesBloqueados }}</div>
+                <div class="small">No pueden agendar por el bot</div>
+                <div class="ver mt-1">Revisar</div>
             </a>
         </div>
     </div>
@@ -118,7 +100,7 @@
                                 <a href="{{ route('agenda', ['fecha' => $cita->inicio->toDateString()]) }}" class="text-decoration-none text-body d-block">
                                     <div class="fw-semibold">{{ $cita->cliente->nombre }}</div>
                                     <div class="small text-secondary">
-                                        {{ $cita->inicio->locale('es')->isoFormat('ddd D MMM · h:mm a') }} · {{ $cita->profesional->nombre }}
+                                        {{ ucfirst($cita->inicio->locale('es')->isoFormat('ddd D MMM, h:mm a')) }}, con {{ $cita->profesional->nombre }}
                                     </div>
                                 </a>
                             </li>
@@ -145,7 +127,7 @@
                         <ul class="list-inline small mb-2" aria-label="Total del periodo">
                             @foreach ($grafico['series'] as $serie)
                                 <li class="list-inline-item me-3">
-                                    <span class="d-inline-block rounded-1 align-middle me-1" style="width:.75rem;height:.75rem;background:{{ $serie['especialidad'] === 'barberia' ? '#1f2433' : '#c8963e' }}" aria-hidden="true"></span>
+                                    <span class="d-inline-block rounded-1 align-middle me-1" style="width:.75rem;height:.75rem;background:{{ $serie['especialidad'] === 'barberia' ? '#3a2a1f' : '#c0813f' }}" aria-hidden="true"></span>
                                     {{ $serie['nombre'] }}: <strong>{{ $serie['total'] }}</strong> atendidas
                                 </li>
                             @endforeach
@@ -202,7 +184,9 @@
                 }
 
                 const grafico = @json($grafico);
-                const colores = { barberia: '#1f2433', belleza: '#c8963e' };
+                const colores = { barberia: '#3a2a1f', belleza: '#c0813f' };
+                Chart.defaults.font.family = 'Barlow, sans-serif';
+                Chart.defaults.color = '#5a4835';
                 const angosto = window.matchMedia('(max-width: 576px)').matches;
 
                 new Chart(lienzo, {
@@ -212,8 +196,8 @@
                         datasets: grafico.series.map((s) => ({
                             label: s.nombre,
                             data: s.datos,
-                            backgroundColor: colores[s.especialidad] ?? '#6c757d',
-                            borderRadius: 3,
+                            backgroundColor: colores[s.especialidad] ?? '#5a4835',
+                            borderRadius: 1,
                         })),
                     },
                     options: {
@@ -223,8 +207,8 @@
                             tooltip: { callbacks: { title: (items) => grafico.fechas[items[0].dataIndex] } },
                         },
                         scales: {
-                            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: angosto ? 5 : 10 } },
-                            y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: !angosto, text: 'Citas atendidas' } },
+                            x: { grid: { display: false }, border: { color: '#b9a27c' }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: angosto ? 5 : 10 } },
+                            y: { beginAtZero: true, grid: { color: '#b4c2d6' }, border: { display: false }, ticks: { precision: 0 }, title: { display: !angosto, text: 'Citas atendidas' } },
                         },
                     },
                 });

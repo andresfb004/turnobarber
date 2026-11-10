@@ -41,7 +41,7 @@
             @foreach ($profesionales as $p)
                 <li class="nav-item">
                     <a class="nav-link @if((string) $filtro === (string) $p->id) active @endif" href="{{ $consulta(['profesional' => $p->id]) }}">
-                        {{ $p->especialidad === 'barberia' ? 'Barbería' : 'Belleza' }} · {{ $p->nombre }}
+                        {{ $p->nombre }} ({{ $p->especialidad === 'barberia' ? 'barbería' : 'belleza' }})
                     </a>
                 </li>
             @endforeach
@@ -62,17 +62,16 @@
             @endforeach
         @endforeach
 
-        <div class="card">
+        <div class="cuaderno">
             <div class="table-responsive">
                 <table class="table tabla-agenda mb-0">
-                    <thead class="table-light">
+                    <thead>
                     <tr>
                         <th class="hora">Hora</th>
                         @foreach ($columnas as $c)
                             <th>
-                                <i class="bi {{ $c['profesional']->especialidad === 'barberia' ? 'bi-scissors' : 'bi-stars' }}"></i>
                                 {{ $c['profesional']->nombre }}
-                                <span class="text-secondary fw-normal small">· {{ $c['citas']->count() }} citas</span>
+                                <small>{{ $c['citas']->count() }} {{ $c['citas']->count() === 1 ? 'cita' : 'citas' }}</small>
                             </th>
                         @endforeach
                     </tr>
@@ -80,7 +79,7 @@
                     <tbody>
                     @forelse ($horas as $hora)
                         <tr>
-                            <th class="hora fw-semibold">{{ \Illuminate\Support\Carbon::parse($hora)->locale('es')->isoFormat('h:mm a') }}</th>
+                            <th class="hora">{{ \Illuminate\Support\Carbon::parse($hora)->locale('es')->isoFormat('h:mm a') }}</th>
                             @foreach ($columnas as $c)
                                 @php($cita = $c['citas']->get($hora))
                                 @if ($cita)
@@ -149,7 +148,7 @@
                             <select class="form-select" id="cliente_id" name="cliente_id" required>
                                 <option value="">Elige un cliente…</option>
                                 @foreach ($clientes as $cliente)
-                                    <option value="{{ $cliente->id }}" @selected(old('cliente_id') == $cliente->id)>{{ $cliente->nombre }} · {{ $cliente->telefono }}</option>
+                                    <option value="{{ $cliente->id }}" @selected(old('cliente_id') == $cliente->id)>{{ $cliente->nombre }} ({{ $cliente->telefono }})</option>
                                 @endforeach
                             </select>
                             <div class="form-text"><a href="{{ route('clientes.create') }}">Registrar un cliente nuevo</a></div>

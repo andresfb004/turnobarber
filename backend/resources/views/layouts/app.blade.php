@@ -4,7 +4,10 @@
     @php($admin = auth()->user()->esAdministrador())
     <nav class="navbar navbar-expand-lg navbar-dark navbar-tb">
         <div class="container-xl">
-            <a class="navbar-brand" href="{{ route('inicio') }}"><i class="bi bi-scissors"></i> {{ config('app.name') }}</a>
+            <a class="navbar-brand" href="{{ route('inicio') }}">
+                <span class="firma">{{ config('marca.nombre') }}</span>
+                <small>{{ config('marca.subtitulo') }}</small>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
                     aria-controls="menu" aria-expanded="false" aria-label="Abrir menú">
                 <span class="navbar-toggler-icon"></span>
@@ -34,6 +37,7 @@
             </div>
         </div>
     </nav>
+    <div class="poste" aria-hidden="true"></div>
 
     <main class="container-xl py-4">
         @include('partials.alertas')
