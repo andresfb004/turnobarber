@@ -1,16 +1,12 @@
 const config = require('./config');
 const { crearBot } = require('./bot');
 const { iniciarRecordatorios } = require('./recordatorios');
+const { configurarPerfil } = require('./perfil');
 
 async function main() {
   const bot = crearBot(config.botToken);
 
-  await bot.telegram.setMyCommands([
-    { command: 'start', description: 'Empezar o registrarme' },
-    { command: 'agendar', description: 'Agendar una cita' },
-    { command: 'citas', description: 'Ver mis próximas citas' },
-    { command: 'menu', description: 'Mostrar el menú' },
-  ]);
+  await configurarPerfil(bot.telegram);
 
   const recordatorios = iniciarRecordatorios(bot.telegram);
 

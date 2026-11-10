@@ -126,6 +126,7 @@ En el mismo proyecto de Railway se agrega un segundo servicio desde el mismo rep
     BOT_EMAIL=bot@turnobarber.test
     BOT_PASSWORD=...
     ZONA_HORARIA=America/Bogota
+    BARBERIA_NOMBRE=Nombre de la barbería
     ```
 
 Telegram solo permite una copia del bot recibiendo mensajes a la vez: si el bot corre en Railway, no lo inicies también en local.

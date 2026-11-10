@@ -19,6 +19,8 @@ module.exports = {
   botEmail: process.env.BOT_EMAIL,
   botPassword: process.env.BOT_PASSWORD,
   zonaHoraria: process.env.ZONA_HORARIA || 'America/Bogota',
+  // Nombre que ve el cliente en Telegram. Vacío: el bot conserva el nombre que le diste en @BotFather.
+  nombreBarberia: (process.env.BARBERIA_NOMBRE || '').trim(),
   // Cada cuánto el bot revisa si hay recordatorios por enviar.
   minutosRecordatorios: Number(process.env.MINUTOS_RECORDATORIOS || 10),
   // Días hábiles que se ofrecen para agendar.

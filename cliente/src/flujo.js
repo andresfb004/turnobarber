@@ -60,9 +60,20 @@ async function responderError(ctx, resultado, reintentar = 'menu') {
 }
 
 function pedirContacto(ctx) {
+  const barberia = config.nombreBarberia ? ` a <b>${escapar(config.nombreBarberia)}</b>` : ' a la barbería';
+
   return ctx.reply(
-    '👋 ¡Bienvenido a la barbería!\n\nPara agendar necesito tu número de celular. Toca el botón de abajo para compartirlo.',
-    Markup.keyboard([Markup.button.contactRequest('📱 Compartir mi número')]).oneTime().resize(),
+    [
+      `👋 ¡Hola, ${escapar(ctx.from.first_name)}! Bienvenido${barberia}.`,
+      '',
+      'Soy el asistente de citas: aquí puedes agendar con el barbero o con la estilista, ver tus citas y cancelarlas.',
+      '',
+      'Para empezar, toca <b>📱 Compartir mi número</b> abajo. Solo lo usamos para identificar tus citas y avisarte antes de tu turno; no lo compartimos con nadie.',
+    ].join('\n'),
+    {
+      parse_mode: 'HTML',
+      ...Markup.keyboard([Markup.button.contactRequest('📱 Compartir mi número')]).oneTime().resize(),
+    },
   );
 }
 
