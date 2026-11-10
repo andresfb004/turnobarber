@@ -1,0 +1,116 @@
+# TurnoBarber
+
+Sistema de citas para una barbería con dos profesionales: el barbero y la estilista. Los clientes agendan turnos de 1 hora por un bot de Telegram, y el equipo administra las dos agendas desde un panel web.
+
+Proyecto de Aula · Desarrollo y Arquitectura Backend · UNAB.
+
+## Estructura
+
+```text
+proyecto_aula/
+├── backend/   # Laravel: API (Sanctum) y panel web
+├── cliente/   # Bot de Telegram (Node.js), fuera de Laravel
+├── docs/      # Ficha y documento de arquitectura C4
+└── postman/   # Colección de la API
+```
+
+## Reglas de negocio
+
+| Regla | Qué hace |
+| --- | --- |
+| RN1 · Turnos disponibles | Turnos de 1 h en punto dentro del horario de cada profesional, de lunes a sábado, sin cierres ni citas tomadas |
+| RN2 · No cruce por profesional | Un profesional no puede tener dos citas en el mismo turno; profesionales distintos sí pueden atender a la misma hora |
+| RN3 · Anticipación | Se agenda desde 1 h y hasta 14 días adelante; cancelar con menos de 2 h cuenta como inasistencia |
+| RN4 · Bloqueo | Con 2 inasistencias el cliente queda bloqueado hasta que un administrador lo desbloquee |
+
+## Correr el backend en local
+
+Requiere PHP 8.3 o superior y Composer.
+
+```bash
+cd backend
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+php artisan serve
+```
+
+La API queda en `http://localhost:8000/api`. En local se usa SQLite; en producción, MySQL.
+
+Usuarios de prueba que crea el seeder (contraseña `password`):
+
+| Correo | Rol |
+| --- | --- |
+| `barbero@turnobarber.test` | Administrador |
+| `estilista@turnobarber.test` | Administrador |
+| `bot@turnobarber.test` | Bot |
+
+Pruebas automáticas:
+
+```bash
+php artisan test
+```
+
+## API
+
+Todas las rutas, menos `login`, requieren el token Sanctum en la cabecera `Authorization: Bearer <token>`.
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| POST | `/api/login` | Inicia sesión y devuelve el token |
+| POST | `/api/logout` | Invalida el token |
+| POST | `/api/clientes/vincular` | Registra al cliente por su `telegram_id` y teléfono |
+| GET | `/api/profesionales` | Profesionales activos |
+| GET | `/api/turnos?profesional={id}&fecha={Y-m-d}` | Turnos libres (RN1) |
+| POST | `/api/citas` | Agenda un turno (RN2, RN3, RN4) |
+| GET | `/api/citas/{id}` | Detalle de una cita |
+| GET | `/api/clientes/{telegram_id}/citas` | Próximas citas del cliente |
+| PATCH | `/api/citas/{id}/cancelar` | Cancela una cita (RN3) |
+| GET | `/api/recordatorios/pendientes` | Citas de las próximas 2 h sin aviso |
+| PATCH | `/api/recordatorios/{id}/enviado` | Marca el aviso como enviado |
+
+La colección `postman/TurnoBarber.postman_collection.json` trae el flujo completo y un ejemplo de cada error (401, 404, 422). Cambia la variable `base_url` para apuntar a la URL desplegada.
+
+## Despliegue en Railway
+
+1. **New Project → Deploy from GitHub repo** y elige este repositorio.
+2. En el servicio: **Settings → Root Directory** = `backend`.
+3. En el mismo proyecto: **New → Database → MySQL**.
+4. En el servicio de Laravel: **Variables → Raw Editor** y pega:
+
+    ```text
+    APP_NAME=TurnoBarber
+    APP_ENV=production
+    APP_DEBUG=false
+    APP_KEY=base64:...
+    APP_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+    APP_TIMEZONE=America/Bogota
+    APP_LOCALE=es
+    APP_FALLBACK_LOCALE=en
+    APP_FAKER_LOCALE=es_ES
+    LOG_CHANNEL=stderr
+    LOG_LEVEL=info
+    DB_CONNECTION=mysql
+    DB_URL=${{MySQL.MYSQL_URL}}
+    SESSION_DRIVER=database
+    CACHE_STORE=database
+    QUEUE_CONNECTION=database
+    SEED_ADMIN_PASSWORD=...
+    SEED_BOT_EMAIL=bot@turnobarber.test
+    SEED_BOT_PASSWORD=...
+    ```
+
+    Genera el `APP_KEY` en local con `php artisan key:generate --show`. Usa contraseñas propias en `SEED_ADMIN_PASSWORD` y `SEED_BOT_PASSWORD`, no `password`.
+
+5. **Settings → Networking → Generate Domain** para tener la URL pública con HTTPS.
+6. Las migraciones corren solas en cada despliegue (`railway.json`). Los datos de demostración se cargan una sola vez desde la consola del servicio:
+
+    ```bash
+    php artisan db:seed --force
+    ```
+
+7. Comprueba que `https://<tu-dominio>/api/profesionales` responda 401 sin token.
+
+El archivo `.env` nunca se sube al repositorio; `backend/.env.example` tiene la lista de variables.

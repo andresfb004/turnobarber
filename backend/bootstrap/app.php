@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'rol' => EnsureUserHasRole::class,
         ]);
 
+        // Railway termina el HTTPS en su proxy: confiar en él hace que Laravel
+        // detecte el esquema https y genere los enlaces correctos.
+        $middleware->trustProxies(at: '*');
+
         // La API responde 401 en JSON; solo el panel redirige al login.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : '/login');
     })
