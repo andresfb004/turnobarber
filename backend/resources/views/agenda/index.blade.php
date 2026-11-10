@@ -17,18 +17,19 @@
 
         <div class="d-flex flex-wrap gap-2">
             <div class="btn-group" role="group" aria-label="Cambiar día">
-                <a class="btn btn-outline-secondary" href="{{ $consulta(['fecha' => $fecha->copy()->subDay()->toDateString()]) }}" title="Día anterior"><i class="bi bi-chevron-left"></i></a>
+                <a class="btn btn-outline-secondary" href="{{ $consulta(['fecha' => $fecha->copy()->subDay()->toDateString()]) }}" title="Día anterior" aria-label="Día anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
                 <a class="btn btn-outline-secondary" href="{{ $consulta(['fecha' => today()->toDateString()]) }}">Hoy</a>
-                <a class="btn btn-outline-secondary" href="{{ $consulta(['fecha' => $fecha->copy()->addDay()->toDateString()]) }}" title="Día siguiente"><i class="bi bi-chevron-right"></i></a>
+                <a class="btn btn-outline-secondary" href="{{ $consulta(['fecha' => $fecha->copy()->addDay()->toDateString()]) }}" title="Día siguiente" aria-label="Día siguiente"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
             </div>
             <form method="GET" action="{{ route('agenda') }}" class="d-flex gap-2">
                 @if ($filtro)
                     <input type="hidden" name="profesional" value="{{ $filtro }}">
                 @endif
-                <input type="date" name="fecha" value="{{ $fecha->toDateString() }}" class="form-control" onchange="this.form.submit()" aria-label="Elegir fecha">
+                <input type="date" name="fecha" value="{{ $fecha->toDateString() }}" class="form-control" aria-label="Elegir fecha">
+                <button class="btn btn-outline-secondary">Ir</button>
             </form>
             @if ($admin)
-                <button class="btn btn-tb" data-bs-toggle="modal" data-bs-target="#nuevaCita"><i class="bi bi-plus-lg"></i> Nueva cita</button>
+                <button class="btn btn-tb" data-bs-toggle="modal" data-bs-target="#nuevaCita"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva cita</button>
             @endif
         </div>
     </div>
@@ -36,11 +37,11 @@
     @if ($admin)
         <ul class="nav nav-pills mb-3">
             <li class="nav-item">
-                <a class="nav-link @if($filtro === 'todos') active @endif" href="{{ $consulta(['profesional' => 'todos']) }}">Todos</a>
+                <a class="nav-link @if($filtro === 'todos') active @endif" @if($filtro === 'todos') aria-current="true" @endif href="{{ $consulta(['profesional' => 'todos']) }}">Todos</a>
             </li>
             @foreach ($profesionales as $p)
                 <li class="nav-item">
-                    <a class="nav-link @if((string) $filtro === (string) $p->id) active @endif" href="{{ $consulta(['profesional' => $p->id]) }}">
+                    <a class="nav-link @if((string) $filtro === (string) $p->id) active @endif" @if((string) $filtro === (string) $p->id) aria-current="true" @endif href="{{ $consulta(['profesional' => $p->id]) }}">
                         {{ $p->nombre }} ({{ $p->especialidad === 'barberia' ? 'barbería' : 'belleza' }})
                     </a>
                 </li>
@@ -51,12 +52,12 @@
     @if ($columnas->isEmpty())
         <div class="alert alert-info">No hay una agenda asociada a tu cuenta.</div>
     @elseif ($fecha->isSunday())
-        <div class="card"><div class="card-body text-center text-secondary py-5"><i class="bi bi-moon fs-2"></i><p class="mb-0 mt-2">Los domingos no se atiende.</p></div></div>
+        <div class="card"><div class="card-body text-center text-secondary py-5"><i class="bi bi-moon fs-2" aria-hidden="true"></i><p class="mb-0 mt-2">Los domingos no se atiende.</p></div></div>
     @else
         @foreach ($columnas->filter(fn ($c) => $c['cierres']->isNotEmpty()) as $c)
             @foreach ($c['cierres'] as $cierre)
                 <div class="alert alert-warning py-2">
-                    <i class="bi bi-calendar-x"></i> <strong>{{ $c['profesional']->nombre }}</strong>: {{ $cierre->motivo }}
+                    <i class="bi bi-calendar-x" aria-hidden="true"></i> <strong>{{ $c['profesional']->nombre }}</strong>: {{ $cierre->motivo }}
                     ({{ $cierre->esTodoElDia() ? 'todo el día' : substr($cierre->hora_inicio, 0, 5).' a '.substr($cierre->hora_fin, 0, 5) }})
                 </div>
             @endforeach
@@ -93,10 +94,10 @@
                                                         {{ $cita->cliente->nombre }}
                                                     @endif
                                                     @if ($cita->cliente->telegram_id)
-                                                        <i class="bi bi-telegram text-primary" title="Agendó por Telegram"></i>
+                                                        <i class="bi bi-telegram text-primary" role="img" aria-label="Agendó por Telegram" title="Agendó por Telegram"></i>
                                                     @endif
                                                 </div>
-                                                <div class="small text-secondary"><i class="bi bi-telephone"></i> {{ $cita->cliente->telefono }}</div>
+                                                <div class="small text-secondary"><i class="bi bi-telephone" aria-hidden="true"></i> {{ $cita->cliente->telefono }}</div>
                                             </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 @include('partials.estado', ['estado' => $cita->estado])
@@ -142,6 +143,9 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
+                        @if ($errors->any() && old('cliente_id') !== null)
+                            <div class="alert alert-danger py-2" role="alert">{{ $errors->first() }}</div>
+                        @endif
                         <p class="small text-secondary">Para clientes que llaman o llegan en persona. Se aplican las mismas reglas que en el bot.</p>
                         <div class="mb-3">
                             <label class="form-label" for="cliente_id">Cliente</label>
@@ -186,3 +190,10 @@
         </div>
     @endif
 @endsection
+
+{{-- Si la cita no se pudo crear, el formulario vuelve a abrirse con lo escrito. --}}
+@if (auth()->user()->esAdministrador() && $errors->any() && old('cliente_id') !== null)
+    @push('scripts')
+        <script>new bootstrap.Modal(document.getElementById('nuevaCita')).show();</script>
+    @endpush
+@endif

@@ -17,6 +17,29 @@
 @yield('cuerpo')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script>
+    // Al enviar: el botón muestra que está trabajando y no admite un segundo toque.
+    document.addEventListener('submit', (evento) => {
+        const formulario = evento.target;
+        if (evento.defaultPrevented || formulario.method.toLowerCase() === 'get') return;
+
+        const boton = evento.submitter ?? formulario.querySelector('button:not([type=button])');
+        if (!boton) return;
+
+        boton.disabled = true;
+        boton.setAttribute('aria-busy', 'true');
+        boton.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>');
+    });
+
+    // Al volver con el botón "atrás", el formulario queda utilizable.
+    window.addEventListener('pageshow', () => {
+        document.querySelectorAll('[aria-busy="true"]').forEach((boton) => {
+            boton.disabled = false;
+            boton.removeAttribute('aria-busy');
+            boton.querySelector('.spinner-border')?.remove();
+        });
+    });
+</script>
 @stack('scripts')
 </body>
 </html>

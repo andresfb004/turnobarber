@@ -3,15 +3,15 @@
 @section('titulo', $cliente->nombre)
 
 @section('contenido')
-    <a href="{{ route('clientes.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Clientes</a>
+    <a href="{{ route('clientes.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left" aria-hidden="true"></i> Clientes</a>
 
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mt-1 mb-3">
         <div>
             <h1 class="h3 mb-1">{{ $cliente->nombre }}</h1>
             <div class="text-secondary">
-                <i class="bi bi-telephone"></i> {{ $cliente->telefono }}
+                <i class="bi bi-telephone" aria-hidden="true"></i> {{ $cliente->telefono }}
                 @if ($cliente->telegram_id)
-                    · <i class="bi bi-telegram text-primary"></i> Registrado en el bot
+                    · <i class="bi bi-telegram text-primary" aria-hidden="true"></i> Registrado en el bot
                 @else
                     · Aún no usa el bot
                 @endif
@@ -22,15 +22,15 @@
                 <form method="POST" action="{{ route('clientes.desbloquear', $cliente) }}">
                     @csrf
                     @method('PATCH')
-                    <button class="btn btn-success"><i class="bi bi-unlock"></i> Desbloquear</button>
+                    <button class="btn btn-success"><i class="bi bi-unlock" aria-hidden="true"></i> Desbloquear</button>
                 </form>
             @endif
-            <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Editar</a>
+            <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-outline-secondary"><i class="bi bi-pencil" aria-hidden="true"></i> Editar</a>
         </div>
     </div>
 
     @if ($cliente->bloqueado)
-        <div class="alert alert-danger"><i class="bi bi-lock"></i> Bloqueado por {{ $cliente->inasistencias }} inasistencias: no puede agendar por el bot.</div>
+        <div class="alert alert-danger"><i class="bi bi-lock" aria-hidden="true"></i> Bloqueado por {{ $cliente->inasistencias }} inasistencias: no puede agendar por el bot.</div>
     @endif
 
     <div class="row g-3 mb-3">

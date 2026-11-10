@@ -258,6 +258,44 @@ class PanelTest extends ApiTestCase
         $this->assertModelExists($cliente);
     }
 
+    // ---- Accesibilidad ----
+
+    public function test_los_botones_de_solo_icono_tienen_nombre_accesible(): void
+    {
+        $cliente = Cliente::factory()->create(['nombre' => 'Laura Gómez', 'bloqueado' => true]);
+        $this->actingAs($this->admin());
+
+        $this->get('/clientes')->assertOk()
+            ->assertSee('aria-label="Editar a Laura Gómez"', false)
+            ->assertSee('aria-label="Eliminar a Laura Gómez"', false)
+            ->assertSee('aria-label="Desbloquear a Laura Gómez"', false);
+
+        $this->get('/agenda')->assertOk()
+            ->assertSee('aria-label="Día anterior"', false)
+            ->assertSee('Saltar al contenido')
+            ->assertSee('aria-current="page"', false);
+    }
+
+    public function test_el_error_de_login_aparece_junto_a_su_campo(): void
+    {
+        $this->from('/login')->followingRedirects()
+            ->post('/login', ['email' => $this->admin()->email, 'password' => 'otra'])
+            ->assertSee('aria-describedby="email-error"', false)
+            ->assertSee('id="email-error"', false);
+    }
+
+    public function test_si_la_cita_falla_el_formulario_se_reabre_con_el_error(): void
+    {
+        $cliente = Cliente::factory()->create();
+        $this->actingAs($this->admin());
+        $datos = ['cliente_id' => $cliente->id, 'profesional_id' => $this->barbero->id, 'fecha' => '2026-11-11', 'hora' => '10:00'];
+        $this->post('/citas', $datos);
+
+        $this->from('/agenda?fecha=2026-11-11')->followingRedirects()->post('/citas', $datos)
+            ->assertSee('Ese turno acaba de ser tomado, elige otro.')
+            ->assertSee("getElementById('nuevaCita')", false);
+    }
+
     // ---- Páginas de error ----
 
     public function test_las_paginas_de_error_son_propias(): void

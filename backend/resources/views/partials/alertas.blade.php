@@ -1,13 +1,13 @@
 @if (session('exito'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle"></i> {{ session('exito') }}
+        <i class="bi bi-check-circle" aria-hidden="true"></i> {{ session('exito') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
     </div>
 @endif
 
 @if ($errors->any())
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle"></i>
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
         @if ($errors->count() === 1)
             {{ $errors->first() }}
         @else

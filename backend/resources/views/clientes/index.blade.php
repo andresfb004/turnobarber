@@ -5,7 +5,7 @@
 @section('contenido')
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h1 class="h3 mb-0">Clientes</h1>
-        <a href="{{ route('clientes.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg"></i> Nuevo cliente</a>
+        <a href="{{ route('clientes.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo cliente</a>
     </div>
 
     @include('partials.buscador', [
@@ -32,7 +32,7 @@
                         <td>
                             <a href="{{ route('clientes.show', $cliente) }}" class="fw-semibold text-decoration-none">{{ $cliente->nombre }}</a>
                             @if ($cliente->telegram_id)
-                                <i class="bi bi-telegram text-primary" title="Usa el bot de Telegram"></i>
+                                <i class="bi bi-telegram text-primary" role="img" aria-label="Usa el bot de Telegram" title="Usa el bot de Telegram"></i>
                             @endif
                         </td>
                         <td class="text-nowrap">{{ $cliente->telefono }}</td>
@@ -48,12 +48,13 @@
                                 <form method="POST" action="{{ route('clientes.desbloquear', $cliente) }}" class="d-inline">
                                     @csrf
                                     @method('PATCH')
-                                    <button class="btn btn-sm btn-outline-success" title="Desbloquear"><i class="bi bi-unlock"></i></button>
+                                    <button class="btn btn-sm btn-outline-success" title="Desbloquear" aria-label="Desbloquear a {{ $cliente->nombre }}"><i class="bi bi-unlock" aria-hidden="true"></i></button>
                                 </form>
                             @endif
-                            <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-sm btn-outline-secondary" title="Editar" aria-label="Editar a {{ $cliente->nombre }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                             @include('partials.eliminar', [
                                 'ruta' => route('clientes.destroy', $cliente),
+                                'nombre' => 'Eliminar a '.$cliente->nombre,
                                 'pregunta' => $cliente->citas_count > 0
                                     ? 'Este cliente tiene citas registradas y no se puede eliminar.'
                                     : '¿Eliminar a '.$cliente->nombre.'?',

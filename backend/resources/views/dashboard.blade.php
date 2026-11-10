@@ -8,14 +8,14 @@
             <h1 class="mb-0">{{ ucfirst(now()->locale('es')->isoFormat('dddd D [de] MMMM')) }}</h1>
             <div class="text-secondary">Resumen de la barbería a las {{ now()->locale('es')->isoFormat('h:mm a') }}</div>
         </div>
-        <a href="{{ route('agenda') }}" class="btn btn-tb"><i class="bi bi-calendar3"></i> Ver agenda de hoy</a>
+        <a href="{{ route('agenda') }}" class="btn btn-tb"><i class="bi bi-calendar3" aria-hidden="true"></i> Ver agenda de hoy</a>
     </div>
 
     {{-- Lo primero: citas que ya pasaron y nadie marcó. Sin marcarlas, las inasistencias no cuentan (RN4). --}}
     @if ($porMarcar['total'] > 0)
         <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
             <div>
-                <i class="bi bi-exclamation-triangle-fill"></i>
+                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
                 <strong>{{ $porMarcar['total'] }} {{ $porMarcar['total'] === 1 ? 'cita ya pasó y sigue' : 'citas ya pasaron y siguen' }} sin marcar.</strong>
                 Márcalas como atendidas o no asistió para que las inasistencias se cuenten.
             </div>
@@ -120,7 +120,7 @@
 
                     @if ($grafico['total'] === 0)
                         <div class="text-center text-secondary py-5">
-                            <i class="bi bi-bar-chart fs-2"></i>
+                            <i class="bi bi-bar-chart fs-2" aria-hidden="true"></i>
                             <p class="mb-0 mt-2">Todavía no hay citas atendidas en los últimos 30 días.</p>
                         </div>
                     @else
@@ -135,7 +135,7 @@
 
                         <div style="height: 280px" aria-hidden="true"><canvas id="graficoAtendidas"></canvas></div>
                         <p id="graficoSinCargar" class="text-secondary small d-none">
-                            <i class="bi bi-wifi-off"></i> No se pudo cargar el gráfico. Los totales de arriba están actualizados.
+                            <i class="bi bi-wifi-off" aria-hidden="true"></i> No se pudo cargar el gráfico. Los totales de arriba están actualizados.
                         </p>
 
                         {{-- Las tablas ignoran el ancho de 1 px de .visually-hidden: se oculta el contenedor. --}}

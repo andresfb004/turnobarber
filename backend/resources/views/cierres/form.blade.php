@@ -8,7 +8,7 @@
         $afectados = old('profesionales', $cierre->exists ? $cierre->profesionales->pluck('id')->all() : $profesionales->pluck('id')->all());
     @endphp
 
-    <a href="{{ route('cierres.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Cierres</a>
+    <a href="{{ route('cierres.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left" aria-hidden="true"></i> Cierres</a>
     <h1 class="h3 mt-1 mb-3">{{ $cierre->exists ? 'Editar cierre' : 'Nuevo cierre' }}</h1>
 
     <div class="card" style="max-width: 640px">
@@ -19,8 +19,8 @@
 
                 <div class="mb-3">
                     <label class="form-label" for="fecha">Fecha</label>
-                    <input type="date" class="form-control @error('fecha') is-invalid @enderror" id="fecha" name="fecha" value="{{ old('fecha', $cierre->fecha?->toDateString()) }}" required>
-                    @error('fecha')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <input type="date" class="form-control @error('fecha') is-invalid @enderror" @error('fecha') aria-invalid="true" aria-describedby="fecha-error" @enderror id="fecha" name="fecha" value="{{ old('fecha', $cierre->fecha?->toDateString()) }}" required>
+                    @error('fecha')<div class="invalid-feedback" id="fecha-error">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="form-check form-switch mb-2">
@@ -33,20 +33,20 @@
                 <div id="horas" class="row g-2 mb-3 @if($todoElDia) d-none @endif">
                     <div class="col-6">
                         <label class="form-label" for="hora_inicio">Desde</label>
-                        <input type="time" class="form-control @error('hora_inicio') is-invalid @enderror" id="hora_inicio" name="hora_inicio" value="{{ old('hora_inicio', $cierre->hora_inicio ? substr($cierre->hora_inicio, 0, 5) : '14:00') }}">
-                        @error('hora_inicio')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <input type="time" class="form-control @error('hora_inicio') is-invalid @enderror" @error('hora_inicio') aria-invalid="true" aria-describedby="hora_inicio-error" @enderror id="hora_inicio" name="hora_inicio" value="{{ old('hora_inicio', $cierre->hora_inicio ? substr($cierre->hora_inicio, 0, 5) : '14:00') }}">
+                        @error('hora_inicio')<div class="invalid-feedback" id="hora_inicio-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-6">
                         <label class="form-label" for="hora_fin">Hasta</label>
-                        <input type="time" class="form-control @error('hora_fin') is-invalid @enderror" id="hora_fin" name="hora_fin" value="{{ old('hora_fin', $cierre->hora_fin ? substr($cierre->hora_fin, 0, 5) : '18:00') }}">
-                        @error('hora_fin')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <input type="time" class="form-control @error('hora_fin') is-invalid @enderror" @error('hora_fin') aria-invalid="true" aria-describedby="hora_fin-error" @enderror id="hora_fin" name="hora_fin" value="{{ old('hora_fin', $cierre->hora_fin ? substr($cierre->hora_fin, 0, 5) : '18:00') }}">
+                        @error('hora_fin')<div class="invalid-feedback" id="hora_fin-error">{{ $message }}</div>@enderror
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label" for="motivo">Motivo</label>
-                    <input class="form-control @error('motivo') is-invalid @enderror" id="motivo" name="motivo" value="{{ old('motivo', $cierre->motivo) }}" maxlength="120" required placeholder="Festivo, vacaciones, diligencia…">
-                    @error('motivo')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <input class="form-control @error('motivo') is-invalid @enderror" @error('motivo') aria-invalid="true" aria-describedby="motivo-error" @enderror id="motivo" name="motivo" value="{{ old('motivo', $cierre->motivo) }}" maxlength="120" required placeholder="Festivo, vacaciones, diligencia…">
+                    @error('motivo')<div class="invalid-feedback" id="motivo-error">{{ $message }}</div>@enderror
                 </div>
 
                 <fieldset class="mb-4">

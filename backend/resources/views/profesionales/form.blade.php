@@ -7,7 +7,7 @@
         $horarios = $profesional->horarios?->keyBy('dia_semana') ?? collect();
     @endphp
 
-    <a href="{{ route('profesionales.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left"></i> Profesionales</a>
+    <a href="{{ route('profesionales.index') }}" class="text-decoration-none small"><i class="bi bi-arrow-left" aria-hidden="true"></i> Profesionales</a>
     <h1 class="h3 mt-1 mb-3">{{ $profesional->exists ? 'Editar '.$profesional->nombre : 'Nuevo profesional' }}</h1>
 
     <form method="POST" action="{{ $profesional->exists ? route('profesionales.update', $profesional) : route('profesionales.store') }}">
@@ -20,12 +20,12 @@
                     <h2 class="h6 mb-3">Datos</h2>
                     <div class="mb-3">
                         <label class="form-label" for="nombre">Nombre</label>
-                        <input class="form-control @error('nombre') is-invalid @enderror" id="nombre" name="nombre" value="{{ old('nombre', $profesional->nombre) }}" required maxlength="100">
-                        @error('nombre')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <input class="form-control @error('nombre') is-invalid @enderror" @error('nombre') aria-invalid="true" aria-describedby="nombre-error" @enderror id="nombre" name="nombre" value="{{ old('nombre', $profesional->nombre) }}" required maxlength="100">
+                        @error('nombre')<div class="invalid-feedback" id="nombre-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="especialidad">Especialidad</label>
-                        <select class="form-select @error('especialidad') is-invalid @enderror" id="especialidad" name="especialidad">
+                        <select class="form-select @error('especialidad') is-invalid @enderror" @error('especialidad') aria-invalid="true" aria-describedby="especialidad-error" @enderror id="especialidad" name="especialidad">
                             <option value="barberia" @selected(old('especialidad', $profesional->especialidad) === 'barberia')>Barbería</option>
                             <option value="belleza" @selected(old('especialidad', $profesional->especialidad) === 'belleza')>Belleza</option>
                         </select>
@@ -39,14 +39,14 @@
                     <h2 class="h6 mb-3">Cuenta del panel</h2>
                     <div class="mb-3">
                         <label class="form-label" for="email">Correo</label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email', $profesional->user?->email) }}" required>
-                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror id="email" name="email" value="{{ old('email', $profesional->user?->email) }}" required>
+                        @error('email')<div class="invalid-feedback" id="email-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="password">Contraseña</label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" autocomplete="new-password" @required(! $profesional->exists) minlength="8">
+                        <input type="password" class="form-control @error('password') is-invalid @enderror" @error('password') aria-invalid="true" aria-describedby="password-error" @enderror id="password" name="password" autocomplete="new-password" @required(! $profesional->exists) minlength="8">
                         <div class="form-text">{{ $profesional->exists ? 'Déjala vacía para no cambiarla.' : 'Mínimo 8 caracteres.' }}</div>
-                        @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @error('password')<div class="invalid-feedback" id="password-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
                         <label class="form-label" for="rol">Rol</label>
@@ -83,6 +83,7 @@
                                 <input type="time" step="3600" class="form-control form-control-sm" name="horarios[{{ $dia }}][cierre]" aria-label="Cierre del {{ $nombre }}"
                                        value="{{ old("horarios.$dia.cierre", $h ? substr($h->hora_cierre, 0, 5) : '18:00') }}">
                             </div>
+                            @error("horarios.$dia")<div class="col-12 text-danger small">{{ $message }}</div>@enderror
                         </div>
                     @endforeach
                 </div></div>

@@ -5,7 +5,7 @@
 @section('contenido')
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h1 class="h3 mb-0">Profesionales</h1>
-        <a href="{{ route('profesionales.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg"></i> Nuevo profesional</a>
+        <a href="{{ route('profesionales.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo profesional</a>
     </div>
 
     @include('partials.buscador', ['ruta' => route('profesionales.index'), 'placeholder' => 'Buscar por nombre o correo'])
@@ -42,9 +42,10 @@
                             <span class="badge text-bg-{{ $profesional->activo ? 'success' : 'secondary' }}">{{ $profesional->activo ? 'Activo' : 'Inactivo' }}</span>
                         </td>
                         <td class="text-end text-nowrap">
-                            <a href="{{ route('profesionales.edit', $profesional) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('profesionales.edit', $profesional) }}" class="btn btn-sm btn-outline-secondary" title="Editar" aria-label="Editar a {{ $profesional->nombre }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                             @include('partials.eliminar', [
                                 'ruta' => route('profesionales.destroy', $profesional),
+                                'nombre' => 'Eliminar a '.$profesional->nombre,
                                 'pregunta' => $profesional->citas_count > 0
                                     ? 'Este profesional tiene citas: no se puede eliminar, desactívalo.'
                                     : '¿Eliminar a '.$profesional->nombre.' y su cuenta?',

@@ -22,6 +22,7 @@
     --bs-body-color: var(--do-tinta);
     --bs-body-bg: var(--do-kraft);
     --bs-secondary-color: var(--do-suave);
+    --bs-secondary-rgb: 90, 72, 53;
     --bs-border-color: var(--do-regla);
     --bs-link-color-rgb: 122, 67, 25;
     --bs-link-hover-color-rgb: 58, 42, 31;
@@ -158,7 +159,8 @@ a.libro-celda:focus-visible { outline-offset: -3px; }
 .alert-danger { --bs-alert-bg: #f3d9d0; --bs-alert-color: #6e1610; --bs-alert-border-color: var(--do-rojo); }
 .alert-info { --bs-alert-bg: #dde5ee; --bs-alert-color: #173a68; --bs-alert-border-color: var(--do-azul); }
 
-.form-control, .form-select { background-color: #fffaf0; border-color: var(--do-regla); border-radius: 3px; }
+.form-control, .form-select { background-color: #fffaf0; border-color: #8a7350; border-radius: 3px; }
+.form-check-input { border-color: #8a7350; }
 .form-control:focus, .form-select:focus { border-color: var(--do-cobre); box-shadow: 0 0 0 .2rem rgba(138, 79, 34, .25); background-color: #fffaf0; }
 .form-check-input:checked { background-color: var(--do-cobre); border-color: var(--do-cobre); }
 .input-group-text { background: #f1e5ca; border-color: var(--do-regla); }
@@ -237,6 +239,31 @@ a.libro-celda:focus-visible { outline-offset: -3px; }
 .tabla-agenda td + td { border-left: 1px solid var(--do-renglon); }
 .celda-libre { color: #7b6a55; }
 .celda-cerrada { background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(90, 72, 53, .13) 6px 8px); color: var(--do-suave); }
+
+/* ---- Accesibilidad ---- */
+
+.saltar {
+    position: absolute;
+    left: .75rem;
+    top: -4rem;
+    z-index: 2000;
+    padding: .5rem 1rem;
+    background: var(--do-hoja);
+    color: var(--do-tinta);
+    border: 2px solid var(--do-cobre);
+}
+.saltar:focus { top: .75rem; }
+
+main:focus { outline: none; }
+
+/* En pantallas táctiles, todo control se puede tocar con el dedo. */
+@media (pointer: coarse) {
+    .btn, .form-control, .form-select, .page-link, .navbar-toggler, .dropdown-item { min-height: 44px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .25rem; }
+    .btn-sm { min-width: 44px; }
+    .page-link { display: flex; align-items: center; }
+    .navbar-tb .nav-link { padding-block: .7rem; }
+}
 
 @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }

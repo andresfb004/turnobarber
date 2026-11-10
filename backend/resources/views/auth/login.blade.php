@@ -24,18 +24,18 @@
                     <p class="text-secondary small mt-3 mb-0">Panel de la barbería</p>
                 </div>
 
-                @include('partials.alertas')
-
                 <form method="POST" action="{{ route('login.intentar') }}" novalidate>
                     @csrf
                     <div class="mb-3">
                         <label for="email" class="form-label">Correo</label>
                         <input type="email" id="email" name="email" value="{{ old('email') }}"
-                               class="form-control" required autofocus autocomplete="username">
+                               class="form-control @error('email') is-invalid @enderror" @error('email') aria-invalid="true" aria-describedby="email-error" @enderror required autofocus autocomplete="username">
+                        @error('email')<div class="invalid-feedback" id="email-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
+                        <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" @error('password') aria-invalid="true" aria-describedby="password-error" @enderror required autocomplete="current-password">
+                        @error('password')<div class="invalid-feedback" id="password-error">{{ $message }}</div>@enderror
                     </div>
                     <div class="form-check mb-4">
                         <input class="form-check-input" type="checkbox" id="recordar" name="recordar" value="1">

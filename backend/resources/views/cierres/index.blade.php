@@ -5,7 +5,7 @@
 @section('contenido')
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
         <h1 class="h3 mb-0">Cierres</h1>
-        <a href="{{ route('cierres.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg"></i> Nuevo cierre</a>
+        <a href="{{ route('cierres.create') }}" class="btn btn-tb"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo cierre</a>
     </div>
     <p class="text-secondary">Festivos, vacaciones o diligencias: el bot no ofrece turnos en esos días u horas.</p>
 
@@ -39,8 +39,8 @@
                             @endforeach
                         </td>
                         <td class="text-end text-nowrap">
-                            <a href="{{ route('cierres.edit', $cierre) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-                            @include('partials.eliminar', ['ruta' => route('cierres.destroy', $cierre), 'pregunta' => '¿Eliminar este cierre? Esos turnos volverán a estar disponibles.'])
+                            <a href="{{ route('cierres.edit', $cierre) }}" class="btn btn-sm btn-outline-secondary" title="Editar" aria-label="Editar el cierre: {{ $cierre->motivo }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                            @include('partials.eliminar', ['ruta' => route('cierres.destroy', $cierre), 'nombre' => 'Eliminar el cierre: '.$cierre->motivo, 'pregunta' => '¿Eliminar este cierre? Esos turnos volverán a estar disponibles.'])
                         </td>
                     </tr>
                 @empty

@@ -9,7 +9,7 @@
             <div class="metrica" style="font-size: 6rem">{{ $codigo }}</div>
             <h1 class="h4">{{ $titulo }}</h1>
             <p class="text-secondary">{{ $mensaje }}</p>
-            <a href="{{ url('/') }}" class="btn btn-tb mt-2"><i class="bi bi-house"></i> Volver al inicio</a>
+            <a href="{{ url('/') }}" class="btn btn-tb mt-2"><i class="bi bi-house" aria-hidden="true"></i> Volver al inicio</a>
         </div>
     </div>
 @endsection
