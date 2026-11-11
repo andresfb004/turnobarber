@@ -1,6 +1,7 @@
 // Prueba de punta a punta contra una API local de Laravel con los datos del seeder:
 //   cd backend && php artisan migrate:fresh --seed && php artisan serve --port=8001
 process.env.API_URL = process.env.TEST_API_URL || 'http://127.0.0.1:8001/api';
+process.env.IA_PROVEEDOR = '';
 process.env.BOT_EMAIL = 'bot@turnobarber.test';
 process.env.BOT_PASSWORD = process.env.TEST_BOT_PASSWORD || 'password';
 
@@ -52,7 +53,7 @@ test('al compartir su número queda registrado y ve el menú', async () => {
   const r = await sim.contacto(ANA, 'Ana', telefono(ANA));
 
   assert.match(textos(r), /Ya estás registrado/);
-  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar']);
+  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'humano']);
 
   const otraVez = await sim.texto(ANA, 'Ana', '/start');
   assert.match(textos(otraVez), /Hola de nuevo, Ana/);
@@ -121,7 +122,7 @@ test('un texto libre muestra el menú', async () => {
   const r = await sim.texto(ANA, 'Ana', 'quiero un corte mañana');
 
   assert.match(textos(r), /No entendí/);
-  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar']);
+  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'humano']);
 });
 
 test('envía los recordatorios pendientes y los marca como enviados', async () => {

@@ -7,6 +7,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
+    "ia:tunel": "node scripts/tunel-ia.js",
     "test": "node --test --test-concurrency=1 test/"
   },
   "engines": {

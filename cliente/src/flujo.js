@@ -4,6 +4,7 @@ const { Markup } = require('telegraf');
 const api = require('./api');
 const config = require('./config');
 const { proximosDiasHabiles } = require('./fechas');
+const agente = require('./ia/agente');
 
 // Paso en el que va cada cliente: chatId -> { profesional, fecha, fechaTexto, inicio }.
 // Vive en memoria; si el bot se reinicia, el cliente vuelve a empezar desde el menú.
@@ -83,6 +84,7 @@ function mostrarMenu(ctx, saludo = '¿Qué quieres hacer?') {
   return mostrar(ctx, saludo, [
     [boton('📅 Agendar una cita', 'agendar')],
     [boton('📋 Mis citas', 'mis_citas'), boton('❌ Cancelar una cita', 'cancelar')],
+    [boton(`🙋 Hablar con ${config.nombreEncargado}`, 'humano')],
   ]);
 }
 
@@ -237,6 +239,7 @@ async function confirmar(ctx) {
   if (resultado.ok) {
     const cita = resultado.data.data;
     estado.delete(ctx.chat.id);
+    agente.olvidar(ctx.chat.id);
 
     return mostrar(
       ctx,
@@ -326,9 +329,111 @@ async function cancelar(ctx) {
 
   if (!resultado.ok) return responderError(ctx, resultado, `cancelar_si:${ctx.match[1]}`);
 
+  agente.olvidar(ctx.chat.id);
+
   const simbolo = resultado.data.cuenta_como_inasistencia ? '⚠️' : '✅';
 
   return mostrar(ctx, `${simbolo} ${escapar(resultado.data.message)}`, [volverAlMenu]);
+}
+
+// ---- Atención de una persona ----
+
+async function pasarConPersona(ctx, motivo = '') {
+  const { id, first_name: nombre, last_name: apellido, username } = ctx.from;
+  const cliente = [nombre, apellido].filter(Boolean).join(' ');
+  const enlace = username ? `@${escapar(username)}` : `<a href="tg://user?id=${id}">${escapar(cliente)}</a>`;
+  const citas = await api.citasDelCliente(id);
+  const telefono = citas.ok ? citas.data.cliente?.telefono : null;
+
+  const aviso = [
+    '🙋 <b>Un cliente quiere hablar contigo</b>',
+    '',
+    `${escapar(cliente)} (${enlace})`,
+    telefono ? `📱 ${escapar(telefono)}` : null,
+    motivo ? `💬 ${escapar(motivo)}` : null,
+  ].filter((linea) => linea !== null).join('\n');
+
+  let avisados = 0;
+
+  for (const destino of config.avisosTelegramIds) {
+    try {
+      await ctx.telegram.sendMessage(destino, aviso, { parse_mode: 'HTML' });
+      avisados++;
+    } catch (error) {
+      console.error(`[humano] No se pudo avisar a ${destino}: ${error.message}`);
+    }
+  }
+
+  return avisados;
+}
+
+async function pedirPersona(ctx) {
+  const avisados = await pasarConPersona(ctx, 'Tocó el botón para hablar con una persona.');
+
+  if (avisados === 0) {
+    return mostrar(ctx, `😕 No pude avisarle a ${escapar(config.nombreEncargado)} en este momento. Intenta de nuevo más tarde.`, [volverAlMenu]);
+  }
+
+  return mostrar(ctx, `🙋 Listo, le avisé a <b>${escapar(config.nombreEncargado)}</b>. Te escribe por aquí en cuanto pueda.`, [volverAlMenu]);
+}
+
+// ---- Conversación con IA ----
+
+// Lo que la IA puede mostrarle al cliente. Crear o cancelar siempre requiere que él toque el botón.
+const accionesIa = {
+  async mostrarConfirmacion(ctx, profesional, fecha, inicio) {
+    const fechaTexto = new Intl.DateTimeFormat('es-CO', {
+      timeZone: config.zonaHoraria, weekday: 'long', day: 'numeric', month: 'long',
+    }).format(new Date(inicio));
+
+    estado.set(ctx.chat.id, { profesional, fecha, fechaTexto, inicio });
+
+    return ctx.reply(
+      [
+        '📝 <b>Confirma tu cita</b>',
+        '',
+        `${icono(profesional.especialidad)} ${escapar(profesional.nombre)} (${escapar(profesional.especialidad_texto)})`,
+        `📅 ${escapar(fechaTexto)}`,
+        `🕐 ${horaDe(inicio)}`,
+      ].join('\n'),
+      { parse_mode: 'HTML', ...Markup.inlineKeyboard([[boton('✅ Confirmar', 'confirmar'), boton('❌ Salir', 'menu')]]) },
+    );
+  },
+  mostrarCancelacion(ctx, citaId) {
+    return ctx.reply('¿Cancelo esta cita?', Markup.inlineKeyboard([[boton('Sí, cancelar', `cancelar_si:${citaId}`), boton('No', 'menu')]]));
+  },
+};
+
+async function conversar(ctx) {
+  const registrado = await api.citasDelCliente(ctx.from.id);
+
+  if (registrado.tipo === 'no_encontrado') return pedirContacto(ctx);
+
+  if (agente.pidePersona(ctx.message.text)) return pedirPersona(ctx);
+
+  const citaSinConfirmar = Boolean(estado.get(ctx.chat.id)?.inicio);
+
+  if (citaSinConfirmar && agente.confirmaPorTexto(ctx.message.text)) return confirmar(ctx);
+
+  if (agente.preguntaPorSuCita(ctx.message.text)) {
+    if (!citaSinConfirmar) return misCitas(ctx);
+
+    return ctx.reply('Todavía no está agendada: falta confirmarla. Toca Confirmar o respóndeme "sí".', Markup.inlineKeyboard([
+      [boton('✅ Confirmar', 'confirmar'), boton('❌ Salir', 'menu')],
+    ]));
+  }
+
+  await ctx.sendChatAction('typing').catch(() => {});
+
+  const respuesta = await agente.responder(ctx, ctx.message.text, accionesIa, { citaSinConfirmar });
+
+  if (respuesta === agente.YA_RESPONDIO) return undefined;
+  if (!respuesta) return mostrarMenu(ctx, 'No entendí ese mensaje 🙈. Usa los botones:');
+
+  // El botón aparece solo cuando hace falta; siempre sigue disponible en el menú.
+  if (!agente.ofrecerPersona(ctx.message.text, respuesta)) return ctx.reply(respuesta);
+
+  return ctx.reply(respuesta, Markup.inlineKeyboard([[boton(`🙋 Hablar con ${config.nombreEncargado}`, 'humano')]]));
 }
 
 // ---- Registro de manejadores ----
@@ -344,6 +449,8 @@ function registrarFlujo(bot) {
   bot.command('menu', (ctx) => mostrarMenu(ctx));
   bot.command('agendar', elegirProfesional);
   bot.command('citas', misCitas);
+  // Para configurar AVISOS_TELEGRAM_IDS: quien deba recibir avisos escribe /miid.
+  bot.command('miid', (ctx) => ctx.reply(`Tu ID de Telegram es: ${ctx.from.id}`));
   bot.on('contact', recibirContacto);
 
   bot.action('menu', (ctx) => mostrarMenu(ctx));
@@ -354,12 +461,13 @@ function registrarFlujo(bot) {
   bot.action('confirmar', confirmar);
   bot.action('mis_citas', misCitas);
   bot.action('cancelar', elegirCitaACancelar);
+  bot.action('humano', pedirPersona);
   bot.action(/^cancelar:(\d+)$/, confirmarCancelacion);
   bot.action(/^cancelar_si:(\d+)$/, cancelar);
   bot.action(/^asisto:(\d+)$/, (ctx) => mostrar(ctx, '🙌 ¡Gracias por confirmar! Te esperamos.'));
 
-  // Cualquier texto que no sea un comando: el bot no lo interpreta y muestra el menú.
-  bot.on('text', (ctx) => mostrarMenu(ctx, 'No entendí ese mensaje 🙈. Usa los botones:'));
+  // Texto libre: con IA activa se conversa; sin ella, se muestra el menú.
+  bot.on('text', (ctx) => (config.iaProveedor ? conversar(ctx) : mostrarMenu(ctx, 'No entendí ese mensaje 🙈. Usa los botones:')));
 }
 
 module.exports = { registrarFlujo, horaDe, escapar };
