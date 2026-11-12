@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TurnoBarber — Arquitectura</title>
+<!-- Fuente de docs/arquitectura.pdf. Para regenerarlo, desde docs/:
+     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --no-pdf-header-footer --print-to-pdf=arquitectura.pdf arquitectura.html -->
+<style>
+  :root {
+    --tinta: #1c1b19;
+    --gris: #5d5a54;
+    --linea: #cfc9bd;
+    --rojo: #9e2a2b;
+    --azul: #1f4e79;
+    --fondo-tabla: #f4f1ea;
+    --c4-persona: #08427b;
+    --c4-sistema: #1168bd;
+    --c4-contenedor: #438dd5;
+    --c4-componente: #85bbf0;
+    --c4-externo: #8b8b8b;
+  }
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+    @bottom-right { content: counter(page); font: 9pt "Helvetica Neue", Arial, sans-serif; color: #5d5a54; }
+    @bottom-left { content: "TurnoBarber · Arquitectura del sistema"; font: 9pt "Helvetica Neue", Arial, sans-serif; color: #5d5a54; }
+  }
+  @page :first { @bottom-right { content: none; } @bottom-left { content: none; } }
+  html { background: #fff; }
+  body {
+    margin: 0;
+    color: var(--tinta);
+    font: 10.5pt/1.5 "Helvetica Neue", Arial, sans-serif;
+  }
+  h1, h2, h3 { font-family: "Iowan Old Style", Georgia, serif; font-weight: 700; line-height: 1.2; }
+  h2 { font-size: 19pt; margin: 0 0 10pt; padding-bottom: 4pt; border-bottom: 2px solid var(--rojo); break-after: avoid; }
+  h3 { font-size: 13pt; margin: 16pt 0 6pt; color: var(--azul); break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  a { color: var(--azul); }
+  code { font: 9pt Menlo, monospace; background: var(--fondo-tabla); padding: 0 2pt; border-radius: 2px; }
+  .seccion { break-before: page; }
+  .nota { color: var(--gris); font-size: 9.5pt; }
+
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9pt; line-height: 1.35; }
+  th, td { border: 1px solid var(--linea); padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: var(--fondo-tabla); font-weight: 600; }
+  tr { break-inside: avoid; }
+  .tabla-dic { break-inside: auto; table-layout: fixed; }
+  .tabla-dic th:nth-child(1) { width: 22%; } .tabla-dic th:nth-child(2) { width: 17%; } .tabla-dic th:nth-child(3) { width: 6%; } .tabla-dic th:nth-child(4) { width: 8%; }
+  .tabla-dic caption { caption-side: top; text-align: left; font-weight: 700; font-family: "Iowan Old Style", Georgia, serif; font-size: 11.5pt; padding: 8pt 0 3pt; color: var(--azul); }
+  .tabla-dic td:nth-child(1) { font-family: Menlo, monospace; font-size: 8.5pt; white-space: nowrap; }
+  .tabla-dic td:nth-child(2) { font-family: Menlo, monospace; font-size: 8.5pt; white-space: nowrap; }
+  .tabla-dic td:nth-child(3), .tabla-dic td:nth-child(4) { text-align: center; white-space: nowrap; }
+
+  figure { margin: 6pt 0 10pt; break-inside: avoid; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 9pt; color: var(--gris); margin-top: 4pt; }
+
+  /* Portada */
+  .portada { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .poste { height: 10px; background: repeating-linear-gradient(-45deg, var(--rojo) 0 14px, #fff 14px 28px, var(--azul) 28px 42px, #fff 42px 56px); border: 1px solid var(--linea); }
+  .portada h1 { font-size: 40pt; margin: 40mm 0 6pt; }
+  .portada .sub { font-size: 16pt; font-family: "Iowan Old Style", Georgia, serif; color: var(--gris); margin: 0 0 24pt; }
+  .portada dl { display: grid; grid-template-columns: 34mm 1fr; gap: 4pt 10pt; font-size: 10.5pt; margin: 0; }
+  .portada dt { color: var(--gris); }
+  .portada dd { margin: 0; }
+
+  .indice ol { padding-left: 14pt; }
+  .indice li { margin-bottom: 3pt; }
+
+  /* SVG de los diagramas */
+  .c4 text { font-family: "Helvetica Neue", Arial, sans-serif; }
+  .c4 .t { font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; }
+  .c4 .y { font-size: 11.5px; fill: #fff; text-anchor: middle; opacity: .92; }
+  .c4 .d { font-size: 12.5px; fill: #fff; text-anchor: middle; }
+  .c4 .claro .t, .c4 .claro .y, .c4 .claro .d { fill: #0b2540; }
+  .c4 .l { font-size: 12.5px; fill: #1c1b19; }
+  .c4 .lp { font-size: 12px; fill: #5d5a54; }
+  .c4 .flecha { stroke: #3d3b37; stroke-width: 1.6; fill: none; }
+  .c4 .limite { fill: none; stroke: #5d5a54; stroke-width: 1.5; stroke-dasharray: 7 5; }
+  .c4 .limite-t { font-size: 13px; font-weight: 700; fill: #5d5a54; }
+
+  .er text { font-family: "Helvetica Neue", Arial, sans-serif; }
+  .er .cab { fill: var(--azul); }
+  .er .cab-t { font-size: 13.5px; font-weight: 700; fill: #fff; }
+  .er .cuerpo { fill: #fff; stroke: var(--azul); stroke-width: 1.4; }
+  .er .col { font-size: 12px; fill: #1c1b19; font-family: Menlo, monospace; }
+  .er .k { font-size: 10px; font-weight: 700; fill: var(--rojo); }
+  .er .rel { stroke: #3d3b37; stroke-width: 1.6; fill: none; }
+  .er .card { font-size: 13px; font-weight: 700; fill: var(--rojo); }
+  .er .rel-t { font-size: 12px; fill: #5d5a54; }
+
+  .leyenda { display: flex; flex-wrap: wrap; gap: 4pt 12pt; font-size: 8.5pt; color: var(--gris); margin: 2pt 0 8pt; }
+  .leyenda span::before { content: ""; display: inline-block; width: 9pt; height: 9pt; border-radius: 2px; margin-right: 4pt; vertical-align: -1pt; background: var(--c); }
+</style>
+</head>
+<body>
+
+<!-- ============================ PORTADA ============================ -->
+<section class="portada">
+  <div>
+    <div class="poste"></div>
+    <h1>TurnoBarber</h1>
+    <p class="sub">Arquitectura del sistema de turnos para<br>David Orozco Barbería y Peluquería</p>
+    <dl>
+      <dt>Curso</dt><dd>Desarrollo y Arquitectura Backend · Proyecto de Aula</dd>
+      <dt>Universidad</dt><dd>Universidad Autónoma de Bucaramanga (UNAB)</dd>
+      <dt>Integrante</dt><dd>Juan Andrés Forero Becerra</dd>
+      <dt>Cliente real</dt><dd>David Orozco · Calle 41 # 29-17, Bucaramanga, Santander</dd>
+      <dt>Repositorio</dt><dd><a href="https://github.com/andresfb004/turnobarber">github.com/andresfb004/turnobarber</a></dd>
+      <dt>Despliegue</dt><dd><a href="https://davidorozcobarberia.up.railway.app">davidorozcobarberia.up.railway.app</a></dd>
+      <dt>Fecha</dt><dd>12 de noviembre de 2026</dd>
+    </dl>
+  </div>
+  <div class="indice">
+    <h3>Contenido</h3>
+    <ol>
+      <li>Idea: problema, usuario real, evidencia, requisitos, reglas y alcance</li>
+      <li>Modelo C4: contexto, contenedores y componentes</li>
+      <li>Modelo entidad-relación</li>
+      <li>Diccionario de datos</li>
+    </ol>
+    <div class="poste"></div>
+  </div>
+</section>
+
+<!-- ============================ 1. IDEA ============================ -->
+<section class="seccion">
+  <h2>1. Idea</h2>
+
+  <h3>1.1 Problema</h3>
+  <p>En David Orozco Barbería y Peluquería los turnos se anotan a mano, con lápiz, en un cuaderno que lleva la estilista. La barbería atiende unos cinco clientes al día en turnos fijos de una hora, de lunes a sábado.</p>
+  <p>Mientras la agenda viva en un solo cuaderno:</p>
+  <ul>
+    <li>El cliente solo puede pedir turno hablando con alguien que tenga el cuaderno a la mano. No puede ver por sí mismo qué horas quedan libres.</li>
+    <li>Nada impide anotar dos clientes en la misma hora con el mismo profesional, ni dar un turno en la hora de almuerzo.</li>
+    <li>El cuaderno no lleva la cuenta de las inasistencias. La regla que David quiere aplicar (bloquear al cliente después de dos faltas) depende de que alguien lo recuerde.</li>
+    <li>Los clientes no reciben ningún recordatorio, y la información de precios y formas de pago solo se da en persona.</li>
+  </ul>
+  <p><b>Solución:</b> un bot de Telegram donde el cliente agenda, consulta y cancela sus turnos a cualquier hora, conectado a una API en Laravel que aplica las reglas de la barbería. Un panel web le muestra a David y a la estilista la agenda, los clientes y las métricas.</p>
+
+  <h3>1.2 Usuario real</h3>
+  <table>
+    <tr><th style="width:24%">Usuario</th><th>Quién es y qué hace en el sistema</th></tr>
+    <tr><td><b>David Orozco</b><br>Administrador</td><td>Dueño y barbero de David Orozco Barbería y Peluquería (Calle 41 # 29-17, Bucaramanga, Santander). Atiende corte de caballero con barba. En el panel gestiona profesionales, horarios, cierres y clientes, desbloquea clientes y ve el dashboard.</td></tr>
+    <tr><td><b>La estilista</b><br>Profesional</td><td>Esposa de David. Atiende los servicios de belleza (corte de dama, tinte, uñas, cejas, maquillaje, entre otros) y a los niños. Hoy lleva el cuaderno de turnos. En el panel ve su agenda y marca cada cita como atendida o como inasistencia.</td></tr>
+    <tr><td><b>Clientes</b><br>Usuarios del bot</td><td>Personas que piden turno. Usan el bot de Telegram para registrarse con su número, ver turnos libres, agendar, ver y cancelar citas, y consultar servicios y precios.</td></tr>
+  </table>
+
+  <h3>1.3 Evidencia: entrevista con David</h3>
+  <p>La entrevista se hizo el <b>7 de noviembre de 2026</b> en la barbería y quedó grabada en video. Respondieron David y la estilista.</p>
+  <p><b>Video:</b> <a href="https://drive.google.com/file/d/1uRuFmaUyMb_N9rHENk5m-JP3yCst2c9q/view?usp=drivesdk" style="word-break: break-all">https://drive.google.com/file/d/1uRuFmaUyMb_N9rHENk5m-JP3yCst2c9q/view?usp=drivesdk</a></p>
+  <table>
+    <tr><th style="width:31%">Pregunta</th><th style="width:33%">Respuesta</th><th>Cómo quedó en el sistema</th></tr>
+    <tr><td>¿Cómo llevan hoy los turnos?</td><td>En un cuaderno, con lápiz y papel. Lo lleva la estilista.</td><td>Agenda digital en el panel, alimentada por el bot.</td></tr>
+    <tr><td>¿Cuántos clientes atienden al día?</td><td>Unos 5.</td><td>Dimensiona la carga: pocas citas por día, sin necesidad de colas ni caché.</td></tr>
+    <tr><td>¿Qué servicios ofrece cada uno?</td><td>David: corte de caballero y barba. La estilista: todos los servicios de belleza.</td><td>Dos especialidades de profesional: <code>barberia</code> y <code>belleza</code>.</td></tr>
+    <tr><td>¿Cuánto dura un turno?</td><td>Turnos fijos de 1 hora.</td><td>Toda cita dura 60 minutos y empieza en hora en punto.</td></tr>
+    <tr><td>¿Qué horario tienen?</td><td>De 7:00 a 12:00 y de 2:00 a 7:00 p. m. Lunes a sábado; el domingo no se trabaja.</td><td>Horario por profesional y día con descanso de 12:00 a 14:00. El domingo no se ofrece.</td></tr>
+    <tr><td>¿Qué pasa si un cliente no llega?</td><td>Con 2 faltas se bloquea. Se desbloquea después de unas 2 semanas.</td><td>RN4: bloqueo automático por 14 días.</td></tr>
+    <tr><td>¿Cuánto esperan a un cliente que llega tarde?</td><td>Máximo 25 minutos.</td><td>El recordatorio y el bot avisan de los 25 minutos de tolerancia.</td></tr>
+    <tr><td>¿Cómo se paga?</td><td>Efectivo o transferencia. No reciben tarjeta.</td><td>El bot informa las formas de pago.</td></tr>
+    <tr><td>¿Atienden niños?</td><td>Sí, solo con la estilista.</td><td>El bot lo indica en servicios y precios.</td></tr>
+    <tr><td>¿Qué precios puede dar el bot?</td><td>Corte de caballero: $45.000, incluye barba. Los servicios de belleza no tienen precio fijo.</td><td>Precio fijo para caballero. Para belleza el bot da rangos aproximados y aclara que el precio final lo confirma la estilista.</td></tr>
+  </table>
+  <p class="nota">Los rangos de precio de belleza los estimó el equipo con precios del mercado de Bucaramanga, porque la estilista no maneja tarifas fijas. Se presentan siempre como aproximados.</p>
+
+  <h3>1.4 Requisitos funcionales</h3>
+  <table>
+    <tr><th style="width:9%">ID</th><th>Requisito</th><th style="width:16%">Dónde</th></tr>
+    <tr><td>RF1</td><td>El cliente se registra compartiendo su propio número de Telegram.</td><td>Bot</td></tr>
+    <tr><td>RF2</td><td>El cliente consulta los turnos libres de un profesional en un día.</td><td>Bot, API</td></tr>
+    <tr><td>RF3</td><td>El cliente agenda, ve y cancela sus citas, con botones o escribiendo en texto libre (IA).</td><td>Bot, API</td></tr>
+    <tr><td>RF4</td><td>El bot envía un recordatorio antes de la cita con la tolerancia de 25 minutos.</td><td>Bot, API</td></tr>
+    <tr><td>RF5</td><td>El bot muestra servicios, precios y formas de pago.</td><td>Bot</td></tr>
+    <tr><td>RF6</td><td>Inicio de sesión en el panel con dos roles: Administrador y Profesional.</td><td>Panel</td></tr>
+    <tr><td>RF7</td><td>El profesional ve su agenda y marca cada cita como atendida o como inasistencia.</td><td>Panel</td></tr>
+    <tr><td>RF8</td><td>El administrador gestiona profesionales (con horario y descanso), cierres y clientes, con búsqueda y paginación, y puede crear citas.</td><td>Panel</td></tr>
+    <tr><td>RF9</td><td>El administrador ve un dashboard con métricas y un gráfico de citas atendidas por día.</td><td>Panel</td></tr>
+    <tr><td>RF10</td><td>API REST con token para profesionales y citas (listar, ver, crear, editar y eliminar).</td><td>API</td></tr>
+  </table>
+
+  <h3>1.5 Requisitos no funcionales</h3>
+  <ul>
+    <li><b>Seguridad:</b> HTTPS en producción, tokens Sanctum para la API, contraseñas con hash y permisos por rol. El archivo <code>.env</code> nunca se sube al repositorio.</li>
+    <li><b>Consistencia:</b> la reserva de un turno se valida dentro de una transacción con bloqueo, para que dos clientes no tomen la misma hora.</li>
+    <li><b>Tolerancia a fallos:</b> el bot responde aunque la API no esté disponible, vuelve a iniciar sesión ante un 401 y muestra el mensaje de los 422. Si la IA falla, el cliente sigue agendando con botones.</li>
+    <li><b>Usabilidad:</b> panel responsive con páginas 404 y 500 propias. Mensajes del bot cortos y en español de Colombia.</li>
+  </ul>
+
+  <h3>1.6 Reglas de negocio</h3>
+  <table>
+    <tr><th style="width:9%">ID</th><th>Regla</th><th style="width:22%">Dónde se aplica</th></tr>
+    <tr><td>RN1</td><td><b>Disponibilidad.</b> Solo se ofrecen turnos de 1 hora en punto dentro del horario del profesional, fuera del descanso (12:00 a 14:00) y fuera de los cierres registrados.</td><td><code>TurnoService</code></td></tr>
+    <tr><td>RN2</td><td><b>Sin cruces.</b> Al crear o reprogramar, la hora se vuelve a validar dentro de una transacción con bloqueo de fila. Si otro cliente la tomó antes, la API responde 422 y el bot ofrece las horas que quedan.</td><td><code>CitaService</code>, <code>CitaRepository</code></td></tr>
+    <tr><td>RN3</td><td><b>Anticipación.</b> Se agenda con al menos 1 hora y hasta 14 días adelante. Cancelar con menos de 2 horas cuenta como inasistencia.</td><td><code>CitaService</code></td></tr>
+    <tr><td>RN4</td><td><b>Bloqueo por inasistencias.</b> Con 2 inasistencias el cliente queda bloqueado 14 días y no puede agendar (422). Al vencer el plazo se desbloquea solo; el administrador también puede desbloquearlo antes.</td><td><code>CitaService</code>, middleware <code>liberar.bloqueos</code></td></tr>
+    <tr><td>RN5</td><td><b>Cierres.</b> El administrador registra cierres de un día completo o de unas horas, para uno o ambos profesionales, y esas horas dejan de ofrecerse.</td><td><code>TurnoService</code></td></tr>
+  </table>
+
+  <h3>1.7 Alcance</h3>
+  <table>
+    <tr><th style="width:50%">Incluye</th><th>No incluye</th></tr>
+    <tr>
+      <td><ul style="margin:0">
+        <li>Bot de Telegram con botones e IA local (Ollama).</li>
+        <li>API REST en Laravel con Sanctum.</li>
+        <li>Panel web con dos roles, dashboard y CRUD de profesionales, cierres y clientes.</li>
+        <li>Recordatorios automáticos y bloqueo por inasistencias.</li>
+        <li>Despliegue en Railway con MySQL y HTTPS.</li>
+      </ul></td>
+      <td><ul style="margin:0">
+        <li>Pagos en línea o facturación electrónica.</li>
+        <li>Catálogo de servicios con precios en la base de datos: los precios viven en el bot.</li>
+        <li>Comisiones o nómina.</li>
+        <li>Otros canales (WhatsApp, Instagram) o una app móvil propia.</li>
+      </ul></td>
+    </tr>
+  </table>
+</section>
+
+<!-- ============================ 2. C4 ============================ -->
+<section class="seccion">
+  <h2>2. Modelo C4</h2>
+  <div class="leyenda">
+    <span style="--c: var(--c4-persona)">Persona</span>
+    <span style="--c: var(--c4-sistema)">Sistema propio</span>
+    <span style="--c: var(--c4-contenedor)">Contenedor</span>
+    <span style="--c: var(--c4-componente)">Componente</span>
+    <span style="--c: var(--c4-externo)">Sistema externo</span>
+  </div>
+
+  <h3>2.1 Nivel 1: contexto</h3>
+  <p>TurnoBarber se relaciona con tres tipos de persona y con dos sistemas externos: Telegram, donde vive el bot, y Ollama, el modelo de IA que interpreta el texto libre.</p>
+  <figure>
+    <svg class="c4" viewBox="0 0 820 570" role="img" aria-label="Diagrama C4 de contexto">
+      <defs><marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3d3b37"/></marker></defs>
+      <!-- Personas -->
+      <g><rect x="10" y="20" width="190" height="110" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="105" y="50">Cliente</text><text class="y" x="105" y="68">[Persona]</text>
+        <text class="d" x="105" y="92">Pide, consulta y cancela</text><text class="d" x="105" y="109">turnos desde Telegram.</text></g>
+      <g><rect x="335" y="20" width="210" height="110" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="440" y="50">David Orozco</text><text class="y" x="440" y="68">[Persona: administrador]</text>
+        <text class="d" x="440" y="92">Dueño y barbero. Gestiona</text><text class="d" x="440" y="109">la agenda y el negocio.</text></g>
+      <g><rect x="610" y="20" width="200" height="110" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="710" y="50">Estilista</text><text class="y" x="710" y="68">[Persona: profesional]</text>
+        <text class="d" x="710" y="92">Atiende belleza y niños.</text><text class="d" x="710" y="109">Ve su propia agenda.</text></g>
+      <!-- Sistema -->
+      <g><rect x="320" y="250" width="240" height="130" rx="6" fill="var(--c4-sistema)"/>
+        <text class="t" x="440" y="282">TurnoBarber</text><text class="y" x="440" y="300">[Sistema de software]</text>
+        <text class="d" x="440" y="326">Agenda turnos de 1 hora sin</text><text class="d" x="440" y="343">cruces y aplica las reglas</text><text class="d" x="440" y="360">de la barbería.</text></g>
+      <!-- Externos -->
+      <g><rect x="10" y="260" width="190" height="110" rx="6" fill="var(--c4-externo)"/>
+        <text class="t" x="105" y="292">Telegram</text><text class="y" x="105" y="310">[Sistema externo]</text>
+        <text class="d" x="105" y="334">Mensajería donde</text><text class="d" x="105" y="351">vive el bot.</text></g>
+      <g><rect x="320" y="450" width="240" height="105" rx="6" fill="var(--c4-externo)"/>
+        <text class="t" x="440" y="480">Ollama (qwen3.5:9b)</text><text class="y" x="440" y="498">[Sistema externo]</text>
+        <text class="d" x="440" y="522">Modelo de IA local que</text><text class="d" x="440" y="539">entiende texto libre.</text></g>
+      <!-- Flechas -->
+      <line class="flecha" x1="105" y1="130" x2="105" y2="258" marker-end="url(#m1)"/>
+      <text class="l" x="113" y="186">Chatea con el bot</text><text class="lp" x="113" y="202">[App de Telegram]</text>
+
+      <line class="flecha" x1="202" y1="345" x2="318" y2="345" marker-start="url(#m1)" marker-end="url(#m1)"/>
+      <text class="l" x="260" y="296" text-anchor="middle">Mensajes y</text><text class="l" x="260" y="312" text-anchor="middle">recordatorios</text><text class="lp" x="260" y="330" text-anchor="middle">[HTTPS, Bot API]</text>
+
+      <line class="flecha" x1="440" y1="130" x2="440" y2="248" marker-end="url(#m1)"/>
+      <text class="l" x="432" y="180" text-anchor="end">Gestiona agenda,</text><text class="l" x="432" y="196" text-anchor="end">cierres y clientes</text><text class="lp" x="432" y="212" text-anchor="end">[HTTPS, navegador]</text>
+
+      <line class="flecha" x1="700" y1="130" x2="562" y2="290" marker-end="url(#m1)"/>
+      <text class="l" x="660" y="196">Ve su agenda y</text><text class="l" x="660" y="212">marca asistencia</text><text class="lp" x="660" y="228">[HTTPS, navegador]</text>
+
+      <line class="flecha" x1="440" y1="380" x2="440" y2="448" marker-end="url(#m1)"/>
+      <text class="l" x="448" y="410">Interpreta mensajes de texto libre</text><text class="lp" x="448" y="426">[HTTPS con clave, túnel Cloudflare]</text>
+    </svg>
+    <figcaption>Figura 1. Contexto: quién usa TurnoBarber y con qué sistemas externos se comunica.</figcaption>
+  </figure>
+
+  <h3>2.2 Nivel 2: contenedores</h3>
+  <p>El sistema tiene cuatro contenedores. La aplicación Laravel, el bot y la base de datos corren como servicios separados en Railway. El proxy de IA corre en el Mac del desarrollador, junto a Ollama, y se publica con un túnel de Cloudflare. El bot es el <b>cliente externo</b> del proyecto: vive en la carpeta <code>/cliente</code>, fuera de Laravel, y solo habla con la API por HTTPS.</p>
+  <figure>
+    <svg class="c4" viewBox="0 0 960 830" role="img" aria-label="Diagrama C4 de contenedores">
+      <defs><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3d3b37"/></marker></defs>
+      <rect class="limite" x="300" y="200" width="650" height="455" rx="8"/>
+      <text class="limite-t" x="316" y="642">TurnoBarber [Sistema de software]</text>
+      <!-- Personas -->
+      <g><rect x="10" y="20" width="180" height="100" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="100" y="52">Cliente</text><text class="y" x="100" y="70">[Persona]</text><text class="d" x="100" y="95">Usa el bot.</text></g>
+      <g><rect x="480" y="20" width="190" height="100" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="575" y="52">David Orozco</text><text class="y" x="575" y="70">[Persona: administrador]</text><text class="d" x="575" y="95">Usa el panel.</text></g>
+      <g><rect x="760" y="20" width="190" height="100" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="855" y="52">Estilista</text><text class="y" x="855" y="70">[Persona: profesional]</text><text class="d" x="855" y="95">Usa el panel.</text></g>
+      <!-- Externo Telegram -->
+      <g><rect x="10" y="270" width="180" height="100" rx="6" fill="var(--c4-externo)"/>
+        <text class="t" x="100" y="304">Telegram</text><text class="y" x="100" y="322">[Sistema externo]</text><text class="d" x="100" y="346">Bot API.</text></g>
+      <!-- Contenedores -->
+      <g><rect x="330" y="240" width="220" height="150" rx="6" fill="var(--c4-contenedor)"/>
+        <text class="t" x="440" y="268">Bot de Telegram</text><text class="y" x="440" y="285">[Contenedor: Node.js 20, Telegraf]</text>
+        <text class="d" x="440" y="310">Cliente externo (/cliente).</text><text class="d" x="440" y="327">Guía al cliente con botones</text><text class="d" x="440" y="344">o texto libre y envía</text><text class="d" x="440" y="361">recordatorios cada 10 min.</text></g>
+      <g><rect x="660" y="220" width="270" height="160" rx="6" fill="var(--c4-contenedor)"/>
+        <text class="t" x="795" y="248">Aplicación Laravel</text><text class="y" x="795" y="265">[Contenedor: PHP 8.4, Laravel 13]</text>
+        <text class="d" x="795" y="290">Panel web (Blade, Bootstrap 5,</text><text class="d" x="795" y="307">Chart.js) y API REST con</text><text class="d" x="795" y="324">Sanctum. Aplica las reglas</text><text class="d" x="795" y="341">de negocio RN1 a RN5.</text></g>
+      <g><path d="M695,512 v100 a100,14 0 0 0 200,0 v-100" fill="var(--c4-contenedor)"/><ellipse cx="795" cy="512" rx="100" ry="14" fill="#5a9fe0"/>
+        <text class="t" x="795" y="548">Base de datos</text><text class="y" x="795" y="565">[Contenedor: MySQL, Railway]</text>
+        <text class="d" x="795" y="589">Profesionales, horarios,</text><text class="d" x="795" y="606">cierres, clientes y citas.</text></g>
+      <g><rect x="330" y="500" width="220" height="110" rx="6" fill="var(--c4-contenedor)"/>
+        <text class="t" x="440" y="528">Proxy de IA</text><text class="y" x="440" y="545">[Contenedor: Node.js, Mac]</text>
+        <text class="d" x="440" y="570">Valida la clave y solo deja</text><text class="d" x="440" y="587">pasar POST /api/chat.</text></g>
+      <!-- Externo Ollama -->
+      <g><rect x="330" y="720" width="220" height="95" rx="6" fill="var(--c4-externo)"/>
+        <text class="t" x="440" y="750">Ollama (qwen3.5:9b)</text><text class="y" x="440" y="768">[Sistema externo]</text><text class="d" x="440" y="792">Modelo de IA en el Mac.</text></g>
+      <!-- Flechas -->
+      <line class="flecha" x1="100" y1="120" x2="100" y2="268" marker-end="url(#m2)"/>
+      <text class="l" x="108" y="186">Chatea con el bot</text><text class="lp" x="108" y="202">[App de Telegram]</text>
+
+      <line class="flecha" x1="192" y1="345" x2="328" y2="345" marker-start="url(#m2)" marker-end="url(#m2)"/>
+      <text class="l" x="250" y="296" text-anchor="middle">Recibe y envía</text><text class="l" x="250" y="312" text-anchor="middle">mensajes</text><text class="lp" x="250" y="330" text-anchor="middle">[HTTPS, polling]</text>
+
+      <line class="flecha" x1="550" y1="315" x2="658" y2="315" marker-end="url(#m2)"/>
+      <text class="l" x="604" y="268" text-anchor="middle">Llama a la API</text><text class="lp" x="604" y="284" text-anchor="middle">[HTTPS, JSON,</text><text class="lp" x="604" y="300" text-anchor="middle">token Sanctum]</text>
+
+      <line class="flecha" x1="575" y1="120" x2="705" y2="218" marker-end="url(#m2)"/>
+      <text class="l" x="596" y="150" text-anchor="end">Usa el panel</text><text class="lp" x="596" y="166" text-anchor="end">[HTTPS, sesión]</text>
+
+      <line class="flecha" x1="855" y1="120" x2="855" y2="218" marker-end="url(#m2)"/>
+      <text class="l" x="847" y="150" text-anchor="end">Ve su agenda</text><text class="lp" x="847" y="166" text-anchor="end">[HTTPS, sesión]</text>
+
+      <line class="flecha" x1="795" y1="380" x2="795" y2="496" marker-end="url(#m2)"/>
+      <text class="l" x="803" y="432">Lee y escribe</text><text class="lp" x="803" y="448">[SQL por TCP,</text><text class="lp" x="803" y="464">red privada Railway]</text>
+
+      <line class="flecha" x1="440" y1="390" x2="440" y2="498" marker-end="url(#m2)"/>
+      <text class="l" x="448" y="430">Envía la conversación</text><text class="lp" x="448" y="446">[HTTPS, túnel Cloudflare,</text><text class="lp" x="448" y="462">clave Bearer]</text>
+
+      <line class="flecha" x1="440" y1="610" x2="440" y2="718" marker-end="url(#m2)"/>
+      <text class="l" x="448" y="676">POST /api/chat</text><text class="lp" x="448" y="692">[HTTP local, 127.0.0.1]</text>
+    </svg>
+    <figcaption>Figura 2. Contenedores de TurnoBarber. El bot de Telegram es el cliente externo y consume la API con un token.</figcaption>
+  </figure>
+</section>
+
+<section class="seccion">
+  <h3 style="margin-top:0">2.3 Nivel 3: componentes de la aplicación Laravel</h3>
+  <p>La aplicación separa responsabilidades en capas. Las rutas aplican la autenticación y el rol. Los controladores reciben la petición, la validan con un Form Request y delegan las reglas a un servicio. Los servicios usan repositorios para leer y guardar. La API responde con API Resources y el panel con vistas Blade.</p>
+  <figure>
+    <svg class="c4" viewBox="0 0 960 1050" role="img" aria-label="Diagrama C4 de componentes">
+      <defs><marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3d3b37"/></marker></defs>
+      <rect class="limite" x="5" y="120" width="950" height="800" rx="8"/>
+      <text class="limite-t" x="20" y="906">Aplicación Laravel [Contenedor]</text>
+      <!-- Externos al contenedor -->
+      <g><rect x="45" y="10" width="220" height="80" rx="6" fill="var(--c4-contenedor)"/>
+        <text class="t" x="155" y="44">Bot de Telegram</text><text class="y" x="155" y="64">[Contenedor: Node.js]</text></g>
+      <g><rect x="695" y="10" width="220" height="80" rx="10" fill="var(--c4-persona)"/>
+        <text class="t" x="805" y="44">Navegador</text><text class="y" x="805" y="64">[Administrador o profesional]</text></g>
+      <!-- Fila A -->
+      <g class="claro"><rect x="20" y="150" width="270" height="100" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="155" y="177">Rutas de la API</text><text class="y" x="155" y="194">[Componente: routes/api.php]</text>
+        <text class="d" x="155" y="218">Grupos con auth:sanctum, rol</text><text class="d" x="155" y="235">y liberar.bloqueos.</text></g>
+      <g class="claro"><rect x="670" y="150" width="270" height="100" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="805" y="177">Rutas del panel</text><text class="y" x="805" y="194">[Componente: routes/web.php]</text>
+        <text class="d" x="805" y="218">auth, rol, liberar.bloqueos y</text><text class="d" x="805" y="235">límite de intentos en el login.</text></g>
+      <!-- Fila B -->
+      <g class="claro"><rect x="20" y="310" width="270" height="110" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="155" y="337">Controladores API</text><text class="y" x="155" y="354">[Componente: Controllers/Api]</text>
+        <text class="d" x="155" y="378">Auth, Profesional, Turno,</text><text class="d" x="155" y="395">Cliente, Cita, Recordatorio.</text></g>
+      <g class="claro"><rect x="345" y="310" width="270" height="110" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="480" y="337">Form Requests</text><text class="y" x="480" y="354">[Componente: Http/Requests]</text>
+        <text class="d" x="480" y="378">Validan la entrada. Si algo</text><text class="d" x="480" y="395">falla, la API responde 422.</text></g>
+      <g class="claro"><rect x="670" y="310" width="270" height="110" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="805" y="337">Controladores del panel</text><text class="y" x="805" y="354">[Componente: Controllers/Panel]</text>
+        <text class="d" x="805" y="378">Auth, Dashboard, Agenda,</text><text class="d" x="805" y="395">Profesional, Cierre, Cliente.</text></g>
+      <!-- Fila C -->
+      <g class="claro"><rect x="20" y="490" width="270" height="110" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="155" y="517">API Resources</text><text class="y" x="155" y="534">[Componente: Http/Resources]</text>
+        <text class="d" x="155" y="558">Dan forma al JSON de citas,</text><text class="d" x="155" y="575">turnos, clientes y profesionales.</text></g>
+      <g class="claro"><rect x="345" y="490" width="270" height="120" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="480" y="517">Servicios</text><text class="y" x="480" y="534">[Componente: app/Services]</text>
+        <text class="d" x="480" y="558">TurnoService (RN1, RN5),</text><text class="d" x="480" y="575">CitaService (RN2 a RN4), Cliente,</text><text class="d" x="480" y="592">Profesional y Dashboard.</text></g>
+      <g class="claro"><rect x="670" y="490" width="270" height="110" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="805" y="517">Vistas Blade</text><text class="y" x="805" y="534">[Componente: resources/views]</text>
+        <text class="d" x="805" y="558">Bootstrap 5 y Chart.js.</text><text class="d" x="805" y="575">Páginas 404 y 500 propias.</text></g>
+      <!-- Fila D y E -->
+      <g class="claro"><rect x="345" y="670" width="270" height="100" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="480" y="697">Repositorios</text><text class="y" x="480" y="714">[Componente: app/Repositories]</text>
+        <text class="d" x="480" y="738">Cita, Cliente y Profesional.</text><text class="d" x="480" y="755">Consultas y bloqueos de fila.</text></g>
+      <g class="claro"><rect x="345" y="800" width="270" height="90" rx="6" fill="var(--c4-componente)"/>
+        <text class="t" x="480" y="827">Modelos Eloquent</text><text class="y" x="480" y="844">[Componente: app/Models]</text>
+        <text class="d" x="480" y="868">Role, User, Profesional, Horario…</text></g>
+      <!-- Base de datos -->
+      <g><path d="M380,962 v60 a100,13 0 0 0 200,0 v-60" fill="var(--c4-contenedor)"/><ellipse cx="480" cy="962" rx="100" ry="13" fill="#5a9fe0"/>
+        <text class="t" x="480" y="996">Base de datos</text><text class="y" x="480" y="1014">[Contenedor: MySQL]</text></g>
+      <!-- Flechas -->
+      <line class="flecha" x1="155" y1="90" x2="155" y2="148" marker-end="url(#m3)"/>
+      <text class="lp" x="163" y="112">[HTTPS, JSON, token Bearer]</text>
+      <line class="flecha" x1="805" y1="90" x2="805" y2="148" marker-end="url(#m3)"/>
+      <text class="lp" x="797" y="112" text-anchor="end">[HTTPS, cookie de sesión]</text>
+
+      <line class="flecha" x1="155" y1="250" x2="155" y2="308" marker-end="url(#m3)"/>
+      <text class="l" x="163" y="284">Despacha la petición</text>
+      <line class="flecha" x1="805" y1="250" x2="805" y2="308" marker-end="url(#m3)"/>
+      <text class="l" x="797" y="284" text-anchor="end">Despacha la petición</text>
+
+      <line class="flecha" x1="290" y1="380" x2="343" y2="380" marker-end="url(#m3)"/>
+      <text class="l" x="317" y="372" text-anchor="middle">Valida</text>
+      <line class="flecha" x1="670" y1="380" x2="617" y2="380" marker-end="url(#m3)"/>
+      <text class="l" x="643" y="372" text-anchor="middle">Valida</text>
+
+      <line class="flecha" x1="155" y1="420" x2="155" y2="488" marker-end="url(#m3)"/>
+      <text class="l" x="163" y="458">Arma la respuesta JSON</text>
+      <line class="flecha" x1="805" y1="420" x2="805" y2="488" marker-end="url(#m3)"/>
+      <text class="l" x="797" y="458" text-anchor="end">Renderiza el HTML</text>
+
+      <line class="flecha" x1="250" y1="420" x2="395" y2="488" marker-end="url(#m3)"/>
+      <line class="flecha" x1="710" y1="420" x2="565" y2="488" marker-end="url(#m3)"/>
+      <text class="l" x="480" y="452" text-anchor="middle">Delegan las reglas</text><text class="l" x="480" y="468" text-anchor="middle">de negocio</text>
+
+      <line class="flecha" x1="480" y1="610" x2="480" y2="668" marker-end="url(#m3)"/>
+      <text class="l" x="488" y="644">Lee y guarda</text>
+      <line class="flecha" x1="480" y1="770" x2="480" y2="798" marker-end="url(#m3)"/>
+      <text class="l" x="488" y="789">Usa</text>
+      <line class="flecha" x1="480" y1="890" x2="480" y2="946" marker-end="url(#m3)"/>
+      <text class="l" x="488" y="910">Consultas SQL <tspan class="lp">[PDO, TCP]</tspan></text>
+    </svg>
+    <figcaption>Figura 3. Componentes de la aplicación Laravel: rutas, controladores, Form Requests, servicios, repositorios, modelos, API Resources y vistas.</figcaption>
+  </figure>
+</section>
+
+<section class="seccion">
+  <h3 style="margin-top:0">Endpoints de la API</h3>
+  <p>Todas las rutas, salvo el login, exigen un token Sanctum. El usuario del bot tiene el rol <code>Bot</code>; las escrituras sobre profesionales y el borrado de citas son solo del rol <code>Administrador</code>.</p>
+  <table>
+    <tr><th style="width:12%">Método</th><th style="width:34%">Ruta</th><th>Qué hace</th><th style="width:20%">Códigos</th></tr>
+    <tr><td>POST</td><td><code>/api/login</code></td><td>Entrega un token.</td><td>200, 401, 422</td></tr>
+    <tr><td>POST</td><td><code>/api/logout</code></td><td>Revoca el token.</td><td>204, 401</td></tr>
+    <tr><td>GET</td><td><code>/api/profesionales</code></td><td>Lista los profesionales activos.</td><td>200, 401</td></tr>
+    <tr><td>GET</td><td><code>/api/profesionales/{id}</code></td><td>Detalle con horarios.</td><td>200, 404</td></tr>
+    <tr><td>POST · PUT · DELETE</td><td><code>/api/profesionales[/{id}]</code></td><td>Crea, edita o elimina (administrador).</td><td>201, 200, 204, 403, 422</td></tr>
+    <tr><td>GET</td><td><code>/api/turnos</code></td><td>Turnos libres de un profesional en un día (RN1).</td><td>200, 422</td></tr>
+    <tr><td>POST</td><td><code>/api/clientes/vincular</code></td><td>Registra o actualiza al cliente del bot.</td><td>200, 201, 422</td></tr>
+    <tr><td>GET</td><td><code>/api/clientes/{telegramId}/citas</code></td><td>Próximas citas del cliente.</td><td>200, 404</td></tr>
+    <tr><td>POST</td><td><code>/api/citas</code></td><td>Agenda una cita (RN1 a RN4).</td><td>201, 422</td></tr>
+    <tr><td>GET · PUT</td><td><code>/api/citas/{id}</code></td><td>Ve o reprograma una cita.</td><td>200, 404, 422</td></tr>
+    <tr><td>PATCH</td><td><code>/api/citas/{id}/cancelar</code></td><td>Cancela una cita (RN3).</td><td>200, 422</td></tr>
+    <tr><td>DELETE</td><td><code>/api/citas/{id}</code></td><td>Elimina una cita (administrador).</td><td>204, 403, 404</td></tr>
+    <tr><td>GET · PATCH</td><td><code>/api/recordatorios/…</code></td><td>Citas por recordar y marca de enviado.</td><td>200, 204</td></tr>
+  </table>
+
+  <h3>Componentes del bot (cliente externo)</h3>
+  <table>
+    <tr><th style="width:26%">Módulo</th><th>Responsabilidad</th></tr>
+    <tr><td><code>src/api.js</code></td><td>Cliente HTTP de la API. Inicia sesión, guarda el token y lo renueva ante un 401.</td></tr>
+    <tr><td><code>src/flujo.js</code></td><td>Conversación por botones: registro, agendar, mis citas, cancelar, servicios y contacto con el encargado. Traduce los 422 y la falta de conexión en mensajes claros.</td></tr>
+    <tr><td><code>src/ia/agente.js</code></td><td>Interpreta el texto libre con Ollama usando herramientas que llaman a la API. Si la IA falla, vuelve a los botones.</td></tr>
+    <tr><td><code>src/recordatorios.js</code></td><td>Cada 10 minutos pide las citas por recordar, envía el mensaje y las marca como enviadas.</td></tr>
+    <tr><td><code>src/negocio.js</code></td><td>Datos de la barbería que dio David: horario, servicios, precios, pagos y tolerancia.</td></tr>
+    <tr><td><code>scripts/proxy-ia.js</code></td><td>Proxy de IA: valida la clave y reenvía solo <code>POST /api/chat</code> al Ollama local.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 3. ER ============================ -->
+<section class="seccion">
+  <h2>3. Modelo entidad-relación</h2>
+  <p>El modelo tiene siete entidades de negocio y una tabla pivote. Incluye los tres tipos de relación que pide el proyecto:</p>
+  <ul>
+    <li><b>1:1</b>: <code>users</code> y <code>profesionales</code>. Cada profesional entra al panel con su propia cuenta.</li>
+    <li><b>1:N</b>: <code>roles</code>→<code>users</code>, <code>profesionales</code>→<code>horarios</code>, <code>profesionales</code>→<code>citas</code> y <code>clientes</code>→<code>citas</code>.</li>
+    <li><b>N:M</b>: <code>cierres</code> y <code>profesionales</code>, a través de <code>cierre_profesional</code>. Un cierre puede afectar a uno o a los dos profesionales.</li>
+  </ul>
+  <figure>
+    <svg class="er" viewBox="0 0 920 730" role="img" aria-label="Diagrama entidad-relación">
+      <!-- roles -->
+      <g transform="translate(10,10)"><rect class="cuerpo" width="250" height="88" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">roles</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">UQ</text><text class="col" x="40" y="66">nombre</text>
+        <text class="col" x="40" y="84">timestamps</text></g>
+      <!-- users -->
+      <g transform="translate(10,260)"><rect class="cuerpo" width="250" height="188" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">users</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">FK</text><text class="col" x="40" y="66">role_id</text>
+        <text class="col" x="40" y="86">name</text>
+        <text class="k" x="10" y="106">UQ</text><text class="col" x="40" y="106">email</text>
+        <text class="col" x="40" y="126">email_verified_at</text>
+        <text class="col" x="40" y="146">password</text>
+        <text class="col" x="40" y="166">remember_token</text>
+        <text class="col" x="40" y="184">timestamps</text></g>
+      <!-- horarios -->
+      <g transform="translate(335,10)"><rect class="cuerpo" width="250" height="188" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">horarios</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">FK</text><text class="col" x="40" y="66">profesional_id</text>
+        <text class="col" x="40" y="86">dia_semana</text>
+        <text class="col" x="40" y="106">hora_apertura</text>
+        <text class="col" x="40" y="126">descanso_inicio</text>
+        <text class="col" x="40" y="146">descanso_fin</text>
+        <text class="col" x="40" y="166">hora_cierre</text>
+        <text class="col" x="40" y="184">timestamps</text></g>
+      <!-- profesionales -->
+      <g transform="translate(335,260)"><rect class="cuerpo" width="250" height="148" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">profesionales</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">FK</text><text class="col" x="40" y="66">user_id  (único)</text>
+        <text class="col" x="40" y="86">nombre</text>
+        <text class="col" x="40" y="106">especialidad</text>
+        <text class="col" x="40" y="126">activo</text>
+        <text class="col" x="40" y="144">timestamps</text></g>
+      <!-- cierres -->
+      <g transform="translate(660,10)"><rect class="cuerpo" width="250" height="148" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">cierres</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="col" x="40" y="66">fecha</text>
+        <text class="col" x="40" y="86">hora_inicio</text>
+        <text class="col" x="40" y="106">hora_fin</text>
+        <text class="col" x="40" y="126">motivo</text>
+        <text class="col" x="40" y="144">timestamps</text></g>
+      <!-- cierre_profesional -->
+      <g transform="translate(660,260)"><rect class="cuerpo" width="250" height="88" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">cierre_profesional</text>
+        <text class="k" x="10" y="46">PK FK</text><text class="col" x="56" y="46">cierre_id</text>
+        <text class="k" x="10" y="66">PK FK</text><text class="col" x="56" y="66">profesional_id</text>
+        <text class="col" x="56" y="84">timestamps</text></g>
+      <!-- clientes -->
+      <g transform="translate(10,530)"><rect class="cuerpo" width="250" height="188" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">clientes</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">UQ</text><text class="col" x="40" y="66">telegram_id</text>
+        <text class="col" x="40" y="86">nombre</text>
+        <text class="k" x="10" y="106">UQ</text><text class="col" x="40" y="106">telefono</text>
+        <text class="col" x="40" y="126">inasistencias</text>
+        <text class="col" x="40" y="146">bloqueado</text>
+        <text class="col" x="40" y="166">bloqueado_hasta</text>
+        <text class="col" x="40" y="184">timestamps</text></g>
+      <!-- citas -->
+      <g transform="translate(335,530)"><rect class="cuerpo" width="250" height="188" rx="4"/><rect class="cab" width="250" height="28" rx="4"/>
+        <text class="cab-t" x="10" y="19">citas</text>
+        <text class="k" x="10" y="46">PK</text><text class="col" x="40" y="46">id</text>
+        <text class="k" x="10" y="66">FK</text><text class="col" x="40" y="66">cliente_id</text>
+        <text class="k" x="10" y="86">FK</text><text class="col" x="40" y="86">profesional_id</text>
+        <text class="col" x="40" y="106">inicio</text>
+        <text class="col" x="40" y="126">fin</text>
+        <text class="col" x="40" y="146">estado</text>
+        <text class="col" x="40" y="166">recordatorio_enviado_at</text>
+        <text class="col" x="40" y="184">timestamps</text></g>
+
+      <!-- Relaciones -->
+      <line class="rel" x1="135" y1="98" x2="135" y2="260"/>
+      <text class="card" x="143" y="116">1</text><text class="card" x="143" y="252">N</text><text class="rel-t" x="143" y="184">tiene</text>
+
+      <line class="rel" x1="260" y1="320" x2="335" y2="320"/>
+      <text class="card" x="266" y="312">1</text><text class="card" x="322" y="312">1</text><text class="rel-t" x="297" y="340" text-anchor="middle">es</text>
+
+      <line class="rel" x1="460" y1="260" x2="460" y2="198"/>
+      <text class="card" x="468" y="252">1</text><text class="card" x="468" y="216">N</text><text class="rel-t" x="476" y="234">atiende en</text>
+
+      <line class="rel" x1="585" y1="320" x2="660" y2="320"/>
+      <text class="card" x="591" y="312">1</text><text class="card" x="646" y="312">N</text>
+
+      <line class="rel" x1="785" y1="158" x2="785" y2="260"/>
+      <text class="card" x="793" y="176">1</text><text class="card" x="793" y="252">N</text><text class="rel-t" x="793" y="214">afecta a (N:M)</text>
+
+      <line class="rel" x1="460" y1="408" x2="460" y2="530"/>
+      <text class="card" x="468" y="426">1</text><text class="card" x="468" y="522">N</text><text class="rel-t" x="468" y="474">atiende</text>
+
+      <line class="rel" x1="260" y1="620" x2="335" y2="620"/>
+      <text class="card" x="266" y="612">1</text><text class="card" x="321" y="612">N</text><text class="rel-t" x="297" y="640" text-anchor="middle">pide</text>
+    </svg>
+    <figcaption>Figura 4. Modelo entidad-relación. PK: llave primaria; FK: llave foránea; UQ: valor único. Laravel agrega las tablas técnicas <code>personal_access_tokens</code> (tokens Sanctum de cada usuario), <code>sessions</code>, <code>cache</code> y <code>jobs</code>, que no forman parte del negocio.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================ 4. DICCIONARIO ============================ -->
+<section class="seccion">
+  <h2>4. Diccionario de datos</h2>
+  <p>Tipos según las migraciones de Laravel en MySQL. <code>timestamps</code> agrega <code>created_at</code> y <code>updated_at</code> (TIMESTAMP, nulos) a todas las tablas; no se repiten abajo.</p>
+
+  <table class="tabla-dic">
+    <caption>roles: roles de acceso</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador autoincremental.</td></tr>
+    <tr><td>nombre</td><td>VARCHAR(50)</td><td>No</td><td>UQ</td><td>Administrador, Profesional o Bot.</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>users: cuentas que inician sesión en el panel o en la API</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>role_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>FK</td><td>Rol del usuario → <code>roles.id</code>. No se puede borrar un rol en uso.</td></tr>
+    <tr><td>name</td><td>VARCHAR(255)</td><td>No</td><td></td><td>Nombre visible.</td></tr>
+    <tr><td>email</td><td>VARCHAR(255)</td><td>No</td><td>UQ</td><td>Correo con el que inicia sesión.</td></tr>
+    <tr><td>email_verified_at</td><td>TIMESTAMP</td><td>Sí</td><td></td><td>Fecha de verificación del correo (estándar de Laravel).</td></tr>
+    <tr><td>password</td><td>VARCHAR(255)</td><td>No</td><td></td><td>Contraseña con hash bcrypt.</td></tr>
+    <tr><td>remember_token</td><td>VARCHAR(100)</td><td>Sí</td><td></td><td>Token de “recordarme” del panel.</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>profesionales: quienes atienden citas</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>user_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>FK, UQ</td><td>Cuenta del panel → <code>users.id</code>. Única: relación 1:1.</td></tr>
+    <tr><td>nombre</td><td>VARCHAR(100)</td><td>No</td><td></td><td>Nombre que ve el cliente en el bot.</td></tr>
+    <tr><td>especialidad</td><td>ENUM</td><td>No</td><td></td><td><code>barberia</code> o <code>belleza</code>.</td></tr>
+    <tr><td>activo</td><td>BOOLEAN</td><td>No</td><td></td><td>Si está en falso no se ofrece en el bot. Por defecto verdadero.</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>horarios: jornada de cada profesional por día</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>profesional_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>FK</td><td>→ <code>profesionales.id</code>. Se borra con el profesional.</td></tr>
+    <tr><td>dia_semana</td><td>TINYINT UNSIGNED</td><td>No</td><td></td><td>1 = lunes … 6 = sábado. Único junto con <code>profesional_id</code>.</td></tr>
+    <tr><td>hora_apertura</td><td>TIME</td><td>No</td><td></td><td>Inicio de la jornada (07:00).</td></tr>
+    <tr><td>descanso_inicio</td><td>TIME</td><td>Sí</td><td></td><td>Inicio del descanso (12:00). Nulo si no hay descanso.</td></tr>
+    <tr><td>descanso_fin</td><td>TIME</td><td>Sí</td><td></td><td>Fin del descanso (14:00).</td></tr>
+    <tr><td>hora_cierre</td><td>TIME</td><td>No</td><td></td><td>Fin de la jornada (19:00).</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>cierres: días u horas en que no se atiende</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>fecha</td><td>DATE</td><td>No</td><td>Índice</td><td>Día del cierre.</td></tr>
+    <tr><td>hora_inicio</td><td>TIME</td><td>Sí</td><td></td><td>Inicio del cierre. Si ambas horas son nulas, se cierra todo el día.</td></tr>
+    <tr><td>hora_fin</td><td>TIME</td><td>Sí</td><td></td><td>Fin del cierre.</td></tr>
+    <tr><td>motivo</td><td>VARCHAR(120)</td><td>No</td><td></td><td>Razón visible en el panel (festivo, diligencia…).</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>cierre_profesional: pivote N:M entre cierres y profesionales</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>cierre_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK, FK</td><td>→ <code>cierres.id</code>. Se borra con el cierre.</td></tr>
+    <tr><td>profesional_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK, FK</td><td>→ <code>profesionales.id</code>. Se borra con el profesional.</td></tr>
+  </table>
+
+  <table class="tabla-dic">
+    <caption>clientes: personas que piden turno</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>telegram_id</td><td>BIGINT UNSIGNED</td><td>Sí</td><td>UQ</td><td>Id del usuario en Telegram. Nulo si se creó en el panel y aún no usa el bot.</td></tr>
+    <tr><td>nombre</td><td>VARCHAR(100)</td><td>No</td><td></td><td>Nombre del cliente.</td></tr>
+    <tr><td>telefono</td><td>VARCHAR(20)</td><td>No</td><td>UQ</td><td>Celular compartido desde Telegram.</td></tr>
+    <tr><td>inasistencias</td><td>TINYINT UNSIGNED</td><td>No</td><td></td><td>Faltas acumuladas (RN3, RN4). Por defecto 0.</td></tr>
+    <tr><td>bloqueado</td><td>BOOLEAN</td><td>No</td><td>Índice*</td><td>Verdadero al llegar a 2 inasistencias (RN4).</td></tr>
+    <tr><td>bloqueado_hasta</td><td>DATETIME</td><td>Sí</td><td>Índice*</td><td>Fin del bloqueo: 14 días después de la segunda falta.</td></tr>
+  </table>
+  <p class="nota">* Índice compuesto (<code>bloqueado</code>, <code>bloqueado_hasta</code>) para liberar rápido los bloqueos vencidos.</p>
+
+  <table class="tabla-dic">
+    <caption>citas: turnos agendados</caption>
+    <tr><th>Campo</th><th>Tipo</th><th>Nulo</th><th>Llave</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGINT UNSIGNED</td><td>No</td><td>PK</td><td>Identificador.</td></tr>
+    <tr><td>cliente_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>FK</td><td>→ <code>clientes.id</code>. Se borra con el cliente.</td></tr>
+    <tr><td>profesional_id</td><td>BIGINT UNSIGNED</td><td>No</td><td>FK</td><td>→ <code>profesionales.id</code>. No se puede borrar un profesional con citas.</td></tr>
+    <tr><td>inicio</td><td>DATETIME</td><td>No</td><td>Índice*</td><td>Hora de inicio, siempre en punto.</td></tr>
+    <tr><td>fin</td><td>DATETIME</td><td>No</td><td></td><td>Inicio + 1 hora.</td></tr>
+    <tr><td>estado</td><td>ENUM</td><td>No</td><td></td><td><code>pendiente</code>, <code>atendida</code>, <code>cancelada</code> o <code>no_asistio</code>. Por defecto pendiente.</td></tr>
+    <tr><td>recordatorio_enviado_at</td><td>DATETIME</td><td>Sí</td><td></td><td>Cuándo el bot envió el recordatorio. Nulo si falta enviarlo.</td></tr>
+  </table>
+  <p class="nota">* Índice compuesto (<code>profesional_id</code>, <code>inicio</code>) para buscar turnos ocupados.</p>
+</section>
+
+</body>
+</html>
