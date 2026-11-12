@@ -28,11 +28,12 @@ class CitaRepository
     /**
      * Revisa si el turno ya está tomado y bloquea esas filas hasta que termine la transacción.
      */
-    public function turnoOcupadoConBloqueo(int $profesionalId, Carbon $inicio): bool
+    public function turnoOcupadoConBloqueo(int $profesionalId, Carbon $inicio, ?int $exceptoCitaId = null): bool
     {
         return Cita::activas()
             ->where('profesional_id', $profesionalId)
             ->where('inicio', $inicio)
+            ->when($exceptoCitaId, fn ($consulta) => $consulta->whereKeyNot($exceptoCitaId))
             ->lockForUpdate()
             ->exists();
     }
@@ -40,6 +41,11 @@ class CitaRepository
     public function crear(array $datos): Cita
     {
         return Cita::create($datos);
+    }
+
+    public function eliminar(Cita $cita): void
+    {
+        $cita->delete();
     }
 
     public function actualizar(Cita $cita, array $datos): Cita

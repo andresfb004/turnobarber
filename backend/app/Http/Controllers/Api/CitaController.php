@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ActualizarCitaRequest;
 use App\Http\Requests\Api\CancelarCitaRequest;
 use App\Http\Requests\Api\StoreCitaRequest;
 use App\Http\Resources\CitaResource;
@@ -11,6 +12,7 @@ use App\Repositories\ClienteRepository;
 use App\Repositories\ProfesionalRepository;
 use App\Services\CitaService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class CitaController extends Controller
 {
@@ -38,6 +40,36 @@ class CitaController extends Controller
     public function show(Cita $cita): CitaResource
     {
         return new CitaResource($cita->load('profesional', 'cliente'));
+    }
+
+    /**
+     * Reprograma la cita del cliente a otro turno o profesional, con las mismas reglas de agendar.
+     */
+    public function update(
+        ActualizarCitaRequest $request,
+        Cita $cita,
+        ClienteRepository $clientes,
+        ProfesionalRepository $profesionales,
+    ): CitaResource {
+        $cita = $this->citas->reprogramar(
+            $cita,
+            $clientes->porTelegramIdOFallar($request->validated('telegram_id')),
+            $profesionales->encontrarOFallar($request->validated('profesional_id')),
+            $request->inicio(),
+        );
+
+        return new CitaResource($cita->load('profesional', 'cliente'));
+    }
+
+    /**
+     * Borra una cita registrada por error (solo administrador). Las atendidas o con
+     * inasistencia hacen parte del historial y responden 422.
+     */
+    public function destroy(Cita $cita): Response
+    {
+        $this->citas->eliminar($cita);
+
+        return response()->noContent();
     }
 
     /**

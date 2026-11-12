@@ -18,7 +18,9 @@ Route::middleware(['auth:sanctum', 'rol:'.Role::BOT.','.Role::ADMINISTRADOR])
     ->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-        Route::get('profesionales', [ProfesionalController::class, 'index'])->name('profesionales.index');
+        Route::apiResource('profesionales', ProfesionalController::class)
+            ->only(['index', 'show'])
+            ->parameters(['profesionales' => 'profesional']);
         Route::get('turnos', TurnoController::class)->name('turnos');
 
         Route::post('clientes/vincular', [ClienteController::class, 'vincular'])->name('clientes.vincular');
@@ -26,11 +28,19 @@ Route::middleware(['auth:sanctum', 'rol:'.Role::BOT.','.Role::ADMINISTRADOR])
             ->whereNumber('telegramId')
             ->name('clientes.citas');
 
-        Route::apiResource('citas', CitaController::class)->only(['store', 'show']);
+        Route::apiResource('citas', CitaController::class)->only(['store', 'show', 'update']);
         Route::patch('citas/{cita}/cancelar', [CitaController::class, 'cancelar'])->name('citas.cancelar');
 
         Route::get('recordatorios/pendientes', [RecordatorioController::class, 'pendientes'])
             ->name('recordatorios.pendientes');
         Route::patch('recordatorios/{cita}/enviado', [RecordatorioController::class, 'enviado'])
             ->name('recordatorios.enviado');
+
+        // Escrituras de administración: el bot no puede crear profesionales ni borrar citas.
+        Route::middleware('rol:'.Role::ADMINISTRADOR)->group(function () {
+            Route::apiResource('profesionales', ProfesionalController::class)
+                ->only(['store', 'update', 'destroy'])
+                ->parameters(['profesionales' => 'profesional']);
+            Route::apiResource('citas', CitaController::class)->only(['destroy']);
+        });
     });

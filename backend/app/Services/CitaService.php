@@ -26,27 +26,7 @@ class CitaService
 
     public function agendar(Cliente $cliente, Profesional $profesional, Carbon $inicio): Cita
     {
-        if ($cliente->bloqueado) {
-            $this->rechazar('cliente', 'Tu cuenta está bloqueada por inasistencias. Comunícate con la barbería.');
-        }
-
-        if (! $profesional->activo) {
-            $this->rechazar('profesional_id', 'Ese profesional no está recibiendo citas.');
-        }
-
-        $ahora = Carbon::now();
-
-        if ($inicio < $ahora->copy()->addMinutes(Cita::ANTICIPACION_MINIMA_MINUTOS)) {
-            $this->rechazar('inicio', 'Debes agendar con al menos 1 hora de anticipación.');
-        }
-
-        if ($inicio > $ahora->copy()->addDays(Cita::ANTICIPACION_MAXIMA_DIAS)->endOfDay()) {
-            $this->rechazar('inicio', 'Solo puedes agendar hasta '.Cita::ANTICIPACION_MAXIMA_DIAS.' días adelante.');
-        }
-
-        if (! $this->turnos->esTurnoDelHorario($profesional, $inicio)) {
-            $this->rechazar('inicio', 'Ese turno no está dentro del horario de atención.');
-        }
+        $this->validarTurno($cliente, $profesional, $inicio);
 
         // RN2: dos clientes pueden ver el mismo turno libre al tiempo, así que se
         // valida otra vez dentro de la transacción con las filas bloqueadas.
@@ -66,16 +46,56 @@ class CitaService
     }
 
     /**
+     * Mueve una cita pendiente del cliente a otro turno, con las mismas reglas de agendar.
+     */
+    public function reprogramar(Cita $cita, Cliente $cliente, Profesional $profesional, Carbon $inicio): Cita
+    {
+        $this->asegurarQueEsDelCliente($cita, $cliente);
+
+        if ($cita->estado !== Cita::PENDIENTE) {
+            $this->rechazar('cita', 'Solo se puede reprogramar una cita pendiente.');
+        }
+
+        if ($cita->inicio <= Carbon::now()) {
+            $this->rechazar('cita', 'La hora de esta cita ya pasó.');
+        }
+
+        $this->validarTurno($cliente, $profesional, $inicio);
+
+        return DB::transaction(function () use ($cita, $profesional, $inicio) {
+            if ($this->citas->turnoOcupadoConBloqueo($profesional->id, $inicio, $cita->id)) {
+                $this->rechazar('inicio', 'Ese turno acaba de ser tomado, elige otro.');
+            }
+
+            return $this->citas->actualizar($cita, [
+                'profesional_id' => $profesional->id,
+                'inicio' => $inicio,
+                'fin' => $inicio->copy()->addMinutes(Cita::DURACION_MINUTOS),
+                'recordatorio_enviado_at' => null,
+            ]);
+        });
+    }
+
+    /**
+     * Las citas atendidas o con inasistencia son historial (RN4 cuenta las faltas): no se borran.
+     */
+    public function eliminar(Cita $cita): void
+    {
+        if (in_array($cita->estado, [Cita::ATENDIDA, Cita::NO_ASISTIO], true)) {
+            $this->rechazar('cita', 'Las citas atendidas o con inasistencia hacen parte del historial y no se eliminan.');
+        }
+
+        $this->citas->eliminar($cita);
+    }
+
+    /**
      * Cancela la cita del cliente. Con menos de 2 h de anticipación cuenta como inasistencia (RN3).
      *
      * @return array{0: Cita, 1: bool} La cita y si la cancelación contó como inasistencia.
      */
     public function cancelar(Cita $cita, Cliente $cliente): array
     {
-        // Una cita de otro cliente se trata como inexistente para no revelar datos.
-        if ($cita->cliente_id !== $cliente->id) {
-            throw (new ModelNotFoundException)->setModel(Cita::class, [$cita->id]);
-        }
+        $this->asegurarQueEsDelCliente($cita, $cliente);
 
         if ($cita->estado !== Cita::PENDIENTE) {
             $this->rechazar('cita', 'Esta cita ya no se puede cancelar.');
@@ -159,6 +179,44 @@ class CitaService
             'inasistencias' => $inasistencias,
             'bloqueado' => $cliente->bloqueado || $inasistencias >= Cliente::MAX_INASISTENCIAS,
         ]);
+    }
+
+    /**
+     * RN2 · Profesional activo, RN3 · Anticipación y horario, RN4 · Cliente no bloqueado.
+     */
+    private function validarTurno(Cliente $cliente, Profesional $profesional, Carbon $inicio): void
+    {
+        if ($cliente->bloqueado) {
+            $this->rechazar('cliente', 'Tu cuenta está bloqueada por inasistencias. Comunícate con la barbería.');
+        }
+
+        if (! $profesional->activo) {
+            $this->rechazar('profesional_id', 'Ese profesional no está recibiendo citas.');
+        }
+
+        $ahora = Carbon::now();
+
+        if ($inicio < $ahora->copy()->addMinutes(Cita::ANTICIPACION_MINIMA_MINUTOS)) {
+            $this->rechazar('inicio', 'Debes agendar con al menos 1 hora de anticipación.');
+        }
+
+        if ($inicio > $ahora->copy()->addDays(Cita::ANTICIPACION_MAXIMA_DIAS)->endOfDay()) {
+            $this->rechazar('inicio', 'Solo puedes agendar hasta '.Cita::ANTICIPACION_MAXIMA_DIAS.' días adelante.');
+        }
+
+        if (! $this->turnos->esTurnoDelHorario($profesional, $inicio)) {
+            $this->rechazar('inicio', 'Ese turno no está dentro del horario de atención.');
+        }
+    }
+
+    /**
+     * Una cita de otro cliente se trata como inexistente para no revelar datos.
+     */
+    private function asegurarQueEsDelCliente(Cita $cita, Cliente $cliente): void
+    {
+        if ($cita->cliente_id !== $cliente->id) {
+            throw (new ModelNotFoundException)->setModel(Cita::class, [$cita->id]);
+        }
     }
 
     private function rechazar(string $campo, string $mensaje): never

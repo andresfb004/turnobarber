@@ -77,15 +77,23 @@ Todas las rutas, menos `login`, requieren el token Sanctum en la cabecera `Autho
 | POST | `/api/logout` | Invalida el token |
 | POST | `/api/clientes/vincular` | Registra al cliente por su `telegram_id` y teléfono |
 | GET | `/api/profesionales` | Profesionales activos |
+| GET | `/api/profesionales/{id}` | Detalle con su horario |
+| POST | `/api/profesionales` | Crea un profesional con su cuenta y horario (solo administrador) |
+| PUT | `/api/profesionales/{id}` | Edita un profesional (solo administrador) |
+| DELETE | `/api/profesionales/{id}` | Elimina un profesional sin citas, 204 (solo administrador) |
 | GET | `/api/turnos?profesional={id}&fecha={Y-m-d}` | Turnos libres (RN1) |
 | POST | `/api/citas` | Agenda un turno (RN2, RN3, RN4) |
 | GET | `/api/citas/{id}` | Detalle de una cita |
+| PUT | `/api/citas/{id}` | Reprograma la cita a otro turno (RN2, RN3, RN4) |
+| DELETE | `/api/citas/{id}` | Borra una cita registrada por error, 204 (solo administrador) |
 | GET | `/api/clientes/{telegram_id}/citas` | Próximas citas del cliente |
 | PATCH | `/api/citas/{id}/cancelar` | Cancela una cita (RN3) |
 | GET | `/api/recordatorios/pendientes` | Citas de las próximas 2 h sin aviso |
 | PATCH | `/api/recordatorios/{id}/enviado` | Marca el aviso como enviado |
 
-La colección `postman/TurnoBarber.postman_collection.json` trae el flujo completo y un ejemplo de cada error (401, 404, 422). Cambia la variable `base_url` para apuntar a la URL desplegada.
+CRUD completo (GET, POST, PUT, DELETE) para **profesionales** y **citas**, con API Resources. Códigos: 200, 201, 204, 401, 403, 404 y 422.
+
+La colección `postman/TurnoBarber.postman_collection.json` trae el flujo del bot, un ejemplo de cada error y el CRUD de administración. Por defecto apunta a `http://localhost:8000/api` con los datos del seeder. Para probar en producción importa también `postman/TurnoBarber-produccion.postman_environment.json`, selecciónalo y escribe ahí `bot_password` y `admin_password` (no se guardan en el repositorio).
 
 ## Bot de Telegram (`cliente/`)
 
@@ -122,7 +130,7 @@ En el mismo proyecto de Railway se agrega un segundo servicio desde el mismo rep
 
     ```text
     BOT_TOKEN=...
-    API_URL=https://turnobarber-production.up.railway.app/api
+    API_URL=https://davidorozcobarberia.up.railway.app/api
     BOT_EMAIL=bot@turnobarber.test
     BOT_PASSWORD=...
     ZONA_HORARIA=America/Bogota

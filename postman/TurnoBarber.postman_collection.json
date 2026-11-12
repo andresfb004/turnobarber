@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TurnoBarber API",
-    "description": "API del sistema de citas de la barbería. Ejecuta primero la carpeta 'Flujo del bot' en orden; luego 'Errores esperados'.",
+    "description": "API del sistema de citas de la barbería. Ejecuta en orden: 'Flujo del bot', 'Errores esperados' y 'Administración'. Para producción usa el entorno postman/TurnoBarber-produccion.postman_environment.json y escribe ahí las contraseñas.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -53,6 +53,30 @@
     },
     {
       "key": "cita_id",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": "barbero@turnobarber.test"
+    },
+    {
+      "key": "admin_password",
+      "value": "password"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "inicio_otro",
+      "value": ""
+    },
+    {
+      "key": "profesional_nuevo_id",
+      "value": ""
+    },
+    {
+      "key": "profesional_nuevo_email",
       "value": ""
     }
   ],
@@ -231,7 +255,8 @@
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));",
                   "const t = pm.response.json().data;",
-                  "if (t.length) pm.collectionVariables.set('inicio', t[0].inicio);"
+                  "if (t.length) pm.collectionVariables.set('inicio', t[0].inicio);",
+                  "if (t.length > 1) pm.collectionVariables.set('inicio_otro', t[1].inicio);"
                 ]
               }
             }
@@ -306,6 +331,49 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reprogramar cita",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas/{{cita_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas",
+                "{{cita_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telegram_id\": \"{{telegram_id}}\",\n  \"profesional_id\": \"{{profesional_id}}\",\n  \"inicio\": \"{{inicio_otro}}\"\n}"
+            },
+            "description": "Mueve la cita a otro turno libre con las mismas reglas de agendar (RN2, RN3, RN4)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó en el nuevo turno', () => pm.expect(Date.parse(pm.response.json().data.inicio)).to.eql(Date.parse(pm.collectionVariables.get('inicio_otro'))));"
                 ]
               }
             }
@@ -943,6 +1011,462 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Administración (solo administrador)",
+      "item": [
+        {
+          "name": "Login del administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"device_name\": \"postman\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Las escrituras de profesionales y el borrado de citas son solo del administrador."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear profesional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Profesional de prueba\",\n  \"especialidad\": \"belleza\",\n  \"activo\": true,\n  \"email\": \"{{profesional_nuevo_email}}\",\n  \"password\": \"clave-de-prueba-1\",\n  \"rol\": \"Profesional\",\n  \"horarios\": {\n    \"1\": {\n      \"atiende\": true,\n      \"apertura\": \"09:00\",\n      \"cierre\": \"17:00\"\n    },\n    \"6\": {\n      \"atiende\": true,\n      \"apertura\": \"08:00\",\n      \"cierre\": \"12:00\"\n    }\n  }\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Crea el profesional con su cuenta del panel y su horario (1 = lunes … 6 = sábado)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Un correo distinto en cada ejecución para no chocar con la regla de correo único.",
+                  "pm.collectionVariables.set('profesional_nuevo_email', `prueba${Date.now()}@turnobarber.test`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('profesional_nuevo_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver profesional",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales/{{profesional_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales",
+                "{{profesional_nuevo_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Trae su horario', () => pm.expect(pm.response.json().data.horarios).to.have.length(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar profesional",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales/{{profesional_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales",
+                "{{profesional_nuevo_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Profesional editado\",\n  \"especialidad\": \"belleza\",\n  \"activo\": false,\n  \"email\": \"{{profesional_nuevo_email}}\",\n  \"password\": null,\n  \"rol\": \"Profesional\",\n  \"horarios\": {\n    \"1\": {\n      \"atiende\": true,\n      \"apertura\": \"09:00\",\n      \"cierre\": \"17:00\"\n    },\n    \"6\": {\n      \"atiende\": true,\n      \"apertura\": \"08:00\",\n      \"cierre\": \"12:00\"\n    }\n  }\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Sin contraseña conserva la actual."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Quedó inactivo', () => pm.expect(pm.response.json().data.activo).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 · El bot no puede crear profesionales",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Profesional de prueba\",\n  \"especialidad\": \"belleza\",\n  \"activo\": true,\n  \"email\": \"otro{{$timestamp}}@turnobarber.test\",\n  \"password\": \"clave-de-prueba-1\",\n  \"rol\": \"Profesional\",\n  \"horarios\": {\n    \"1\": {\n      \"atiende\": true,\n      \"apertura\": \"09:00\",\n      \"cierre\": \"17:00\"\n    },\n    \"6\": {\n      \"atiende\": true,\n      \"apertura\": \"08:00\",\n      \"cierre\": \"12:00\"\n    }\n  }\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "422 · Profesional sin datos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Señala los campos', () => pm.expect(pm.response.json().errors).to.have.property('nombre'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar profesional",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales/{{profesional_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales",
+                "{{profesional_nuevo_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 · Profesional eliminado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profesionales/{{profesional_nuevo_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "profesionales",
+                "{{profesional_nuevo_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar la cita cancelada",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/citas/{{cita_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "citas",
+                "{{cita_id}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Borra la cita que el flujo del bot canceló. Las atendidas o con inasistencia responden 422."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde 204', () => pm.response.to.have.status(204));"
                 ]
               }
             }
