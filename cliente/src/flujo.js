@@ -5,6 +5,7 @@ const api = require('./api');
 const config = require('./config');
 const { proximosDiasHabiles } = require('./fechas');
 const agente = require('./ia/agente');
+const negocio = require('./negocio');
 
 // Paso en el que va cada cliente: chatId -> { profesional, fecha, fechaTexto, inicio }.
 // Vive en memoria; si el bot se reinicia, el cliente vuelve a empezar desde el menú.
@@ -84,8 +85,13 @@ function mostrarMenu(ctx, saludo = '¿Qué quieres hacer?') {
   return mostrar(ctx, saludo, [
     [boton('📅 Agendar una cita', 'agendar')],
     [boton('📋 Mis citas', 'mis_citas'), boton('❌ Cancelar una cita', 'cancelar')],
-    [boton(`🙋 Hablar con ${config.nombreEncargado}`, 'humano')],
+    [boton('💈 Servicios y precios', 'servicios'), boton(`🙋 Hablar con ${config.nombreEncargado}`, 'humano')],
   ]);
+}
+
+// Funciona aunque la IA no esté disponible: es información fija del negocio.
+function mostrarServicios(ctx) {
+  return mostrar(ctx, negocio.paraElCliente(escapar), [[boton('📅 Agendar una cita', 'agendar')], volverAlMenu]);
 }
 
 // ---- Registro del cliente ----
@@ -428,7 +434,7 @@ async function conversar(ctx) {
   const respuesta = await agente.responder(ctx, ctx.message.text, accionesIa, { citaSinConfirmar });
 
   if (respuesta === agente.YA_RESPONDIO) return undefined;
-  if (!respuesta) return mostrarMenu(ctx, 'No entendí ese mensaje 🙈. Usa los botones:');
+  if (!respuesta) return mostrarMenu(ctx, 'En este momento te atiendo con los botones 👇');
 
   // El botón aparece solo cuando hace falta; siempre sigue disponible en el menú.
   if (!agente.ofrecerPersona(ctx.message.text, respuesta)) return ctx.reply(respuesta);
@@ -462,6 +468,7 @@ function registrarFlujo(bot) {
   bot.action('mis_citas', misCitas);
   bot.action('cancelar', elegirCitaACancelar);
   bot.action('humano', pedirPersona);
+  bot.action('servicios', mostrarServicios);
   bot.action(/^cancelar:(\d+)$/, confirmarCancelacion);
   bot.action(/^cancelar_si:(\d+)$/, cancelar);
   bot.action(/^asisto:(\d+)$/, (ctx) => mostrar(ctx, '🙌 ¡Gracias por confirmar! Te esperamos.'));

@@ -18,10 +18,12 @@ proyecto_aula/
 
 | Regla | Qué hace |
 | --- | --- |
-| RN1 · Turnos disponibles | Turnos de 1 h en punto dentro del horario de cada profesional, de lunes a sábado, sin cierres ni citas tomadas |
+| RN1 · Turnos disponibles | Turnos de 1 h en punto dentro del horario de cada profesional (7:00–12:00 y 2:00–7:00 p. m., lunes a sábado), sin el descanso de mediodía, cierres ni citas tomadas |
 | RN2 · No cruce por profesional | Un profesional no puede tener dos citas en el mismo turno; profesionales distintos sí pueden atender a la misma hora |
 | RN3 · Anticipación | Se agenda desde 1 h y hasta 14 días adelante; cancelar con menos de 2 h cuenta como inasistencia |
-| RN4 · Bloqueo | Con 2 inasistencias el cliente queda bloqueado hasta que un administrador lo desbloquee |
+| RN4 · Bloqueo | Con 2 inasistencias el cliente queda bloqueado 14 días; luego se desbloquea solo y empieza de cero. El administrador puede desbloquearlo antes |
+
+Datos que da el bot (de la entrevista con el barbero, en `cliente/src/negocio.js`): corte de caballero $45.000 con barba incluida; servicios de la estilista con precios aproximados que ella confirma; pago en efectivo o transferencia (sin tarjeta); niños solo con la estilista; 25 minutos de tolerancia si el cliente llega tarde.
 
 ## Correr el backend en local
 

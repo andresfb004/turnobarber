@@ -30,7 +30,7 @@
     </div>
 
     @if ($cliente->bloqueado)
-        <div class="alert alert-danger"><i class="bi bi-lock" aria-hidden="true"></i> Bloqueado por {{ $cliente->inasistencias }} inasistencias: no puede agendar por el bot.</div>
+        <div class="alert alert-danger"><i class="bi bi-lock" aria-hidden="true"></i> Bloqueado por {{ $cliente->inasistencias }} inasistencias: no puede agendar por el bot@if ($cliente->bloqueado_hasta) hasta el {{ $cliente->bloqueado_hasta->locale('es')->isoFormat('D [de] MMMM') }}. Después se desbloquea solo@endif.</div>
     @endif
 
     <div class="row g-3 mb-3">

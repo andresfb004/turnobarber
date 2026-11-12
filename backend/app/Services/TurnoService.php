@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 
 /**
  * RN1 · Turnos disponibles: turnos de 1 h en punto dentro del horario del
- * profesional, de lunes a sábado, sin cierres ni citas tomadas.
+ * profesional, de lunes a sábado, sin el descanso de mediodía, cierres ni citas tomadas.
  */
 class TurnoService
 {
@@ -65,6 +65,13 @@ class TurnoService
             return collect();
         }
 
+        // El descanso de mediodía se trata como un cierre fijo de todos los días.
+        $bloqueos = $cierres->map(fn ($cierre) => [$cierre->hora_inicio, $cierre->hora_fin]);
+
+        if ($horario->descanso_inicio && $horario->descanso_fin) {
+            $bloqueos->push([$horario->descanso_inicio, $horario->descanso_fin]);
+        }
+
         $turnos = collect();
         $inicio = $dia->copy()->setTimeFromTimeString($horario->hora_apertura);
         $ultimo = $dia->copy()->setTimeFromTimeString($horario->hora_cierre)
@@ -73,9 +80,9 @@ class TurnoService
         for (; $inicio <= $ultimo; $inicio->addMinutes(Cita::DURACION_MINUTOS)) {
             $fin = $inicio->copy()->addMinutes(Cita::DURACION_MINUTOS);
 
-            $cerrado = $cierres->contains(function ($cierre) use ($inicio, $fin) {
-                $desde = $inicio->copy()->setTimeFromTimeString($cierre->hora_inicio);
-                $hasta = $inicio->copy()->setTimeFromTimeString($cierre->hora_fin);
+            $cerrado = $bloqueos->contains(function (array $bloqueo) use ($inicio, $fin) {
+                $desde = $inicio->copy()->setTimeFromTimeString($bloqueo[0]);
+                $hasta = $inicio->copy()->setTimeFromTimeString($bloqueo[1]);
 
                 return $inicio < $hasta && $desde < $fin;
             });

@@ -89,7 +89,7 @@ class ProfesionalService
     }
 
     /**
-     * @param  array<int, array{atiende?: bool, apertura?: string, cierre?: string}>  $horarios  Por día 1–6.
+     * @param  array<int, array{atiende?: bool, apertura?: string, descanso_inicio?: string, descanso_fin?: string, cierre?: string}>  $horarios  Por día 1–6.
      */
     private function guardarHorarios(Profesional $profesional, array $horarios): void
     {
@@ -105,6 +105,8 @@ class ProfesionalService
             $profesional->horarios()->create([
                 'dia_semana' => $dia,
                 'hora_apertura' => $horario['apertura'],
+                'descanso_inicio' => ($horario['descanso_inicio'] ?? null) ?: null,
+                'descanso_fin' => ($horario['descanso_fin'] ?? null) ?: null,
                 'hora_cierre' => $horario['cierre'],
             ]);
         }

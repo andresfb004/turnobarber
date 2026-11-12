@@ -9,12 +9,15 @@ use Illuminate\Database\Seeder;
 class HorarioSeeder extends Seeder
 {
     /**
-     * Valores de prueba: el horario real está pendiente de confirmar con el barbero.
-     * Cuando lo tengas, cambia solo estas dos horas (o el día que sea distinto).
+     * Horario real según la entrevista: lunes a sábado de 7:00 a 12:00 y de 2:00 a 7:00 p. m.
      */
-    private const APERTURA = '08:00';
+    private const APERTURA = '07:00';
 
-    private const CIERRE = '18:00';
+    private const DESCANSO_INICIO = '12:00';
+
+    private const DESCANSO_FIN = '14:00';
+
+    private const CIERRE = '19:00';
 
     public function run(): void
     {
@@ -24,6 +27,8 @@ class HorarioSeeder extends Seeder
                     'profesional_id' => $profesional->id,
                     'dia_semana' => $dia,
                     'hora_apertura' => self::APERTURA,
+                    'descanso_inicio' => self::DESCANSO_INICIO,
+                    'descanso_fin' => self::DESCANSO_FIN,
                     'hora_cierre' => self::CIERRE,
                 ]);
             }

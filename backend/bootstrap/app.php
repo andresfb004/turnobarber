@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\LiberarBloqueosVencidos;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'rol' => EnsureUserHasRole::class,
+            'liberar.bloqueos' => LiberarBloqueosVencidos::class,
         ]);
 
         // Railway termina el HTTPS en su proxy: confiar en él hace que Laravel

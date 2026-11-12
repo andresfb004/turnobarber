@@ -63,7 +63,7 @@
             <div class="col-lg-6">
                 <div class="card h-100"><div class="card-body">
                     <h2 class="h6 mb-1">Horario</h2>
-                    <p class="small text-secondary">Turnos de 1 hora desde la apertura; el último empieza 1 hora antes del cierre. El domingo no se atiende.</p>
+                    <p class="small text-secondary">Turnos de 1 hora desde la apertura; el último empieza 1 hora antes del cierre. En el descanso no se dan turnos. El domingo no se atiende.</p>
                     @foreach (\App\Models\Horario::DIAS as $dia => $nombre)
                         @php($h = $horarios->get($dia))
                         <div class="row g-2 align-items-center mb-2">
@@ -77,11 +77,20 @@
                             </div>
                             <div class="col-4">
                                 <input type="time" step="3600" class="form-control form-control-sm" name="horarios[{{ $dia }}][apertura]" aria-label="Apertura del {{ $nombre }}"
-                                       value="{{ old("horarios.$dia.apertura", $h ? substr($h->hora_apertura, 0, 5) : '08:00') }}">
+                                       value="{{ old("horarios.$dia.apertura", $h ? substr($h->hora_apertura, 0, 5) : '07:00') }}">
                             </div>
                             <div class="col-4">
                                 <input type="time" step="3600" class="form-control form-control-sm" name="horarios[{{ $dia }}][cierre]" aria-label="Cierre del {{ $nombre }}"
-                                       value="{{ old("horarios.$dia.cierre", $h ? substr($h->hora_cierre, 0, 5) : '18:00') }}">
+                                       value="{{ old("horarios.$dia.cierre", $h ? substr($h->hora_cierre, 0, 5) : '19:00') }}">
+                            </div>
+                            <div class="col-4 small text-secondary text-end">Descanso</div>
+                            <div class="col-4">
+                                <input type="time" step="3600" class="form-control form-control-sm" name="horarios[{{ $dia }}][descanso_inicio]" aria-label="Inicio del descanso del {{ $nombre }}" title="Inicio del descanso"
+                                       value="{{ old("horarios.$dia.descanso_inicio", $h ? substr((string) $h->descanso_inicio, 0, 5) : '12:00') }}">
+                            </div>
+                            <div class="col-4">
+                                <input type="time" step="3600" class="form-control form-control-sm" name="horarios[{{ $dia }}][descanso_fin]" aria-label="Fin del descanso del {{ $nombre }}" title="Fin del descanso"
+                                       value="{{ old("horarios.$dia.descanso_fin", $h ? substr((string) $h->descanso_fin, 0, 5) : '14:00') }}">
                             </div>
                             @error("horarios.$dia")<div class="col-12 text-danger small">{{ $message }}</div>@enderror
                         </div>

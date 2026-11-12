@@ -53,7 +53,7 @@ test('al compartir su número queda registrado y ve el menú', async () => {
   const r = await sim.contacto(ANA, 'Ana', telefono(ANA));
 
   assert.match(textos(r), /Ya estás registrado/);
-  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'humano']);
+  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'servicios', 'humano']);
 
   const otraVez = await sim.texto(ANA, 'Ana', '/start');
   assert.match(textos(otraVez), /Hola de nuevo, Ana/);
@@ -122,7 +122,16 @@ test('un texto libre muestra el menú', async () => {
   const r = await sim.texto(ANA, 'Ana', 'quiero un corte mañana');
 
   assert.match(textos(r), /No entendí/);
-  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'humano']);
+  assert.deepEqual(botones(r), ['agendar', 'mis_citas', 'cancelar', 'servicios', 'humano']);
+});
+
+test('muestra servicios, precios y formas de pago sin necesitar la IA', async () => {
+  const r = await sim.boton(ANA, 'Ana', 'servicios');
+
+  assert.match(textos(r), /Corte de caballero \(incluye barba\): <b>\$45\.000<\/b>/);
+  assert.match(textos(r), /precios aproximados/);
+  assert.match(textos(r), /Efectivo o transferencia/);
+  assert.ok(botones(r).includes('agendar'));
 });
 
 test('envía los recordatorios pendientes y los marca como enviados', async () => {
@@ -133,6 +142,6 @@ test('envía los recordatorios pendientes y los marca como enviados', async () =
   await revisarRecordatorios(telegram);
 
   assert.equal(enviados.length, pendientes.length);
-  enviados.forEach((m) => assert.match(m.texto, /Te esperamos hoy/));
+  enviados.forEach((m) => assert.match(m.texto, /Te esperamos hoy[\s\S]*máximo 25 minutos/));
   assert.equal((await api.recordatoriosPendientes()).data.data.length, 0);
 });

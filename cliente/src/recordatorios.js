@@ -4,6 +4,7 @@ const { Markup } = require('telegraf');
 const api = require('./api');
 const config = require('./config');
 const { escapar } = require('./flujo');
+const { toleranciaMinutos } = require('./negocio');
 
 let revisando = false;
 
@@ -26,7 +27,7 @@ async function revisarRecordatorios(telegram) {
       try {
         await telegram.sendMessage(
           cita.cliente.telegram_id,
-          `⏰ <b>Recordatorio</b>\n\nTe esperamos hoy a las <b>${escapar(cita.hora_texto)}</b> con ${escapar(cita.profesional.nombre)}.`,
+          `⏰ <b>Recordatorio</b>\n\nTe esperamos hoy a las <b>${escapar(cita.hora_texto)}</b> con ${escapar(cita.profesional.nombre)}. Si se te hace tarde, te esperamos máximo ${toleranciaMinutos} minutos.`,
           {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
