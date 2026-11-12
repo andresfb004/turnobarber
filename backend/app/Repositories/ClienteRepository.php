@@ -3,9 +3,21 @@
 namespace App\Repositories;
 
 use App\Models\Cliente;
+use Illuminate\Support\Carbon;
 
 class ClienteRepository
 {
+    /**
+     * RN4: levanta los bloqueos que ya cumplieron su plazo; el cliente empieza de cero.
+     */
+    public function liberarBloqueosVencidos(): int
+    {
+        return Cliente::where('bloqueado', true)
+            ->whereNotNull('bloqueado_hasta')
+            ->where('bloqueado_hasta', '<=', Carbon::now())
+            ->update(['bloqueado' => false, 'bloqueado_hasta' => null, 'inasistencias' => 0]);
+    }
+
     public function porTelegramId(int $telegramId): ?Cliente
     {
         return Cliente::where('telegram_id', $telegramId)->first();

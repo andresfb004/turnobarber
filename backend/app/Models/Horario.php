@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['profesional_id', 'dia_semana', 'hora_apertura', 'hora_cierre'])]
+#[Fillable(['profesional_id', 'dia_semana', 'hora_apertura', 'descanso_inicio', 'descanso_fin', 'hora_cierre'])]
 class Horario extends Model
 {
     /**

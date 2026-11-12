@@ -169,15 +169,17 @@ class CitaService
     }
 
     /**
-     * RN4: suma una inasistencia y bloquea al cliente al llegar al máximo.
+     * RN4: suma una inasistencia y, al llegar al máximo, bloquea al cliente por 14 días.
      */
     private function registrarInasistencia(Cliente $cliente): void
     {
         $inasistencias = $cliente->inasistencias + 1;
+        $seBloquea = ! $cliente->bloqueado && $inasistencias >= Cliente::MAX_INASISTENCIAS;
 
         $this->clientes->actualizar($cliente, [
             'inasistencias' => $inasistencias,
-            'bloqueado' => $cliente->bloqueado || $inasistencias >= Cliente::MAX_INASISTENCIAS,
+            'bloqueado' => $cliente->bloqueado || $seBloquea,
+            'bloqueado_hasta' => $seBloquea ? Carbon::now()->addDays(Cliente::DIAS_BLOQUEO) : $cliente->bloqueado_hasta,
         ]);
     }
 
@@ -187,7 +189,11 @@ class CitaService
     private function validarTurno(Cliente $cliente, Profesional $profesional, Carbon $inicio): void
     {
         if ($cliente->bloqueado) {
-            $this->rechazar('cliente', 'Tu cuenta está bloqueada por inasistencias. Comunícate con la barbería.');
+            $hasta = $cliente->bloqueado_hasta?->locale('es')->isoFormat('dddd D [de] MMMM');
+
+            $this->rechazar('cliente', $hasta
+                ? "Tu cuenta está bloqueada por inasistencias hasta el {$hasta}. Comunícate con la barbería."
+                : 'Tu cuenta está bloqueada por inasistencias. Comunícate con la barbería.');
         }
 
         if (! $profesional->activo) {

@@ -13,7 +13,7 @@ Route::post('login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1')
     ->name('api.login');
 
-Route::middleware(['auth:sanctum', 'rol:'.Role::BOT.','.Role::ADMINISTRADOR])
+Route::middleware(['auth:sanctum', 'rol:'.Role::BOT.','.Role::ADMINISTRADOR, 'liberar.bloqueos'])
     ->name('api.')
     ->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');

@@ -40,7 +40,7 @@
                         <td>
                             {{ $cliente->inasistencias }}
                             @if ($cliente->bloqueado)
-                                <span class="badge text-bg-danger">Bloqueado</span>
+                                <span class="badge text-bg-danger" @if ($cliente->bloqueado_hasta) title="Hasta el {{ $cliente->bloqueado_hasta->locale('es')->isoFormat('D [de] MMMM') }}" @endif>Bloqueado</span>
                             @endif
                         </td>
                         <td class="text-end text-nowrap">

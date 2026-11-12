@@ -35,6 +35,8 @@ class ProfesionalRequest extends FormRequest
             'horarios.*.atiende' => ['boolean'],
             'horarios.*.apertura' => ['nullable', 'date_format:H:i'],
             'horarios.*.cierre' => ['nullable', 'date_format:H:i'],
+            'horarios.*.descanso_inicio' => ['nullable', 'date_format:H:i'],
+            'horarios.*.descanso_fin' => ['nullable', 'date_format:H:i'],
         ];
     }
 
@@ -52,9 +54,30 @@ class ProfesionalRequest extends FormRequest
                     $validator->errors()->add("horarios.$dia", "$nombre: indica la hora de apertura y de cierre.");
                 } elseif ($horario['apertura'] >= $horario['cierre']) {
                     $validator->errors()->add("horarios.$dia", "$nombre: la apertura debe ser antes del cierre.");
+                } else {
+                    $this->validarDescanso($validator, $dia, $nombre, $horario);
                 }
             }
         });
+    }
+
+    /**
+     * El descanso es opcional; si se indica, va completo y dentro del horario.
+     */
+    private function validarDescanso(Validator $validator, int $dia, string $nombre, array $horario): void
+    {
+        $desde = $horario['descanso_inicio'] ?? null;
+        $hasta = $horario['descanso_fin'] ?? null;
+
+        if (! $desde && ! $hasta) {
+            return;
+        }
+
+        if (! $desde || ! $hasta) {
+            $validator->errors()->add("horarios.$dia", "$nombre: indica el inicio y el fin del descanso.");
+        } elseif (! ($horario['apertura'] < $desde && $desde < $hasta && $hasta < $horario['cierre'])) {
+            $validator->errors()->add("horarios.$dia", "$nombre: el descanso debe quedar dentro del horario.");
+        }
     }
 
     public function attributes(): array

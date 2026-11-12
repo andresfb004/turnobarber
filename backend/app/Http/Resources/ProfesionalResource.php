@@ -29,6 +29,9 @@ class ProfesionalResource extends JsonResource
                     'dia_semana' => $horario->dia_semana,
                     'dia' => Horario::DIAS[$horario->dia_semana] ?? null,
                     'apertura' => substr((string) $horario->hora_apertura, 0, 5),
+                    'descanso' => $horario->descanso_inicio
+                        ? substr((string) $horario->descanso_inicio, 0, 5).'-'.substr((string) $horario->descanso_fin, 0, 5)
+                        : null,
                     'cierre' => substr((string) $horario->hora_cierre, 0, 5),
                 ])
                 ->values()),

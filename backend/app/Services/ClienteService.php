@@ -50,11 +50,11 @@ class ClienteService
     }
 
     /**
-     * RN4: solo un administrador desbloquea; el cliente empieza de cero inasistencias.
+     * RN4: el administrador puede desbloquear antes de los 14 días; el cliente empieza de cero.
      */
     public function desbloquear(Cliente $cliente): Cliente
     {
-        return $this->clientes->actualizar($cliente, ['inasistencias' => 0, 'bloqueado' => false]);
+        return $this->clientes->actualizar($cliente, ['inasistencias' => 0, 'bloqueado' => false, 'bloqueado_hasta' => null]);
     }
 
     public function eliminar(Cliente $cliente): void

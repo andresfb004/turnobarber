@@ -84,6 +84,7 @@ class AgendaDemoSeeder extends Seeder
             'nombre' => 'Cliente bloqueado (demo)',
             'inasistencias' => Cliente::MAX_INASISTENCIAS,
             'bloqueado' => true,
+            'bloqueado_hasta' => Carbon::now()->addDays(Cliente::DIAS_BLOQUEO),
         ]);
     }
 
@@ -127,6 +128,9 @@ class AgendaDemoSeeder extends Seeder
             ->each(fn (Cliente $cliente) => $cliente->update([
                 'inasistencias' => $cliente->faltas,
                 'bloqueado' => $cliente->faltas >= Cliente::MAX_INASISTENCIAS,
+                'bloqueado_hasta' => $cliente->faltas >= Cliente::MAX_INASISTENCIAS
+                    ? Carbon::now()->addDays(Cliente::DIAS_BLOQUEO)
+                    : null,
             ]));
     }
 }

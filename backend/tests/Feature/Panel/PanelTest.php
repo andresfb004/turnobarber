@@ -305,4 +305,22 @@ class PanelTest extends ApiTestCase
         $this->get('/no-existe')->assertNotFound()->assertSee('Página no encontrada');
         $this->get('/clientes/999999')->assertNotFound()->assertSee('Volver al inicio');
     }
+
+    public function test_el_horario_guarda_el_descanso_y_valida_que_quede_dentro(): void
+    {
+        $this->actingAs($this->admin());
+        $profesional = Profesional::factory()->create();
+
+        $datos = fn (array $lunes) => [
+            'nombre' => 'Con descanso', 'especialidad' => 'barberia', 'activo' => 1, 'email' => 'descanso@test.co', 'rol' => 'Profesional',
+            'horarios' => [1 => ['atiende' => 1, 'apertura' => '07:00', 'cierre' => '19:00', ...$lunes]],
+        ];
+
+        $this->put("/profesionales/{$profesional->id}", $datos(['descanso_inicio' => '12:00', 'descanso_fin' => '14:00']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame('12:00', substr($profesional->horarios()->sole()->descanso_inicio, 0, 5));
+
+        $this->put("/profesionales/{$profesional->id}", $datos(['descanso_inicio' => '06:00', 'descanso_fin' => '14:00']))
+            ->assertSessionHasErrors('horarios.1');
+    }
 }

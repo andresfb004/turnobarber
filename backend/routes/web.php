@@ -23,7 +23,7 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.intentar');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'liberar.bloqueos'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     // Administradores y profesionales: la agenda (cada profesional solo ve la suya).

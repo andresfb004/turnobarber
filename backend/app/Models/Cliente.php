@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['telegram_id', 'nombre', 'telefono', 'inasistencias', 'bloqueado'])]
+#[Fillable(['telegram_id', 'nombre', 'telefono', 'inasistencias', 'bloqueado', 'bloqueado_hasta'])]
 class Cliente extends Model
 {
     /** @use HasFactory<ClienteFactory> */
@@ -19,12 +19,18 @@ class Cliente extends Model
      */
     public const MAX_INASISTENCIAS = 2;
 
+    /**
+     * Días que dura el bloqueo; después se levanta solo (RN4).
+     */
+    public const DIAS_BLOQUEO = 14;
+
     protected function casts(): array
     {
         return [
             'telegram_id' => 'integer',
             'inasistencias' => 'integer',
             'bloqueado' => 'boolean',
+            'bloqueado_hasta' => 'datetime',
         ];
     }
 
